@@ -501,7 +501,7 @@ class Array(object):
                                    if not isinstance(dim_sel, (int, slice)))
 
         # axes that need to get squeezed out if doing advanced selection
-        if n_advanced_selection > 1:
+        if n_advanced_selection > 0:
             squeeze_axes = tuple([i for i, dim_sel in enumerate(selection)
                                   if isinstance(dim_sel, int)])
         else:
@@ -641,7 +641,7 @@ class Array(object):
                                    if not isinstance(dim_sel, (int, slice)))
 
         # axes that need to get squeezed out if doing advanced selection
-        if n_advanced_selection > 1:
+        if n_advanced_selection > 0:
             squeeze_axes = tuple([i for i, dim_sel in enumerate(selection)
                                   if isinstance(dim_sel, int)])
         else:
