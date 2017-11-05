@@ -730,6 +730,9 @@ class TestArray(unittest.TestCase):
         assert_array_equal(expect, actual)
         actual = z.oindex[ix]
         assert_array_equal(expect, actual)
+        # for 1d arrays, also available via __getitem__
+        actual = z[ix]
+        assert_array_equal(expect, actual)
 
     # noinspection PyStatementEffect
     def test_orthogonal_indexing_1d_bool(self):
@@ -765,6 +768,7 @@ class TestArray(unittest.TestCase):
         # test with different degrees of sparseness
         for p in 0.5, 0.1, 0.01:
             ix = np.random.choice(a.shape[0], size=int(a.shape[0] * p), replace=True)
+            self._test_orthogonal_indexing_1d_common(a, z, ix)
             ix.sort()
             self._test_orthogonal_indexing_1d_common(a, z, ix)
 
@@ -810,7 +814,12 @@ class TestArray(unittest.TestCase):
         ]
         for selection in selections:
             expect = a[selection]
+            actual = z.get_orthogonal_selection(selection)
+            assert_array_equal(expect, actual)
             actual = z.oindex[selection]
+            assert_array_equal(expect, actual)
+            # for 1d arrays also available via __getitem__
+            actual = z[selection]
             assert_array_equal(expect, actual)
 
     def _test_orthogonal_indexing_2d_common(self, a, z, ix0, ix1):
@@ -872,8 +881,9 @@ class TestArray(unittest.TestCase):
         # test with different degrees of sparseness
         for p in 0.5, 0.1, 0.01:
             ix0 = np.random.choice(a.shape[0], size=int(a.shape[0] * p), replace=True)
-            ix0.sort()
             ix1 = np.random.choice(a.shape[1], size=int(a.shape[1] * .5), replace=True)
+            self._test_orthogonal_indexing_2d_common(a, z, ix0, ix1)
+            ix0.sort()
             ix1.sort()
             self._test_orthogonal_indexing_2d_common(a, z, ix0, ix1)
 
@@ -953,10 +963,11 @@ class TestArray(unittest.TestCase):
         # test with different degrees of sparseness
         for p in 0.5, 0.1, 0.01:
             ix0 = np.random.choice(a.shape[0], size=int(a.shape[0] * p), replace=True)
-            ix0.sort()
             ix1 = np.random.choice(a.shape[1], size=int(a.shape[1] * .5), replace=True)
-            ix1.sort()
             ix2 = np.random.choice(a.shape[2], size=int(a.shape[2] * .5), replace=True)
+            self._test_orthogonal_indexing_3d_common(a, z, ix0, ix1, ix2)
+            ix0.sort()
+            ix1.sort()
             ix2.sort()
             self._test_orthogonal_indexing_3d_common(a, z, ix0, ix1, ix2)
 
@@ -968,6 +979,10 @@ class TestArray(unittest.TestCase):
         assert_array_equal(a, z[:])
         z[:] = 0
         z.set_orthogonal_selection(ix, v[ix])
+        assert_array_equal(a, z[:])
+        # also available via __getitem__ for 1d arrays
+        z[:] = 0
+        z[ix] = v[ix]
         assert_array_equal(a, z[:])
 
     def test_orthogonal_indexing_1d_bool_set(self):
@@ -982,8 +997,6 @@ class TestArray(unittest.TestCase):
         for p in 0.5, 0.1, 0.01:
             ix = np.random.binomial(1, p, size=a.shape[0]).astype(bool)
             self._test_orthogonal_indexing_1d_common_set(v, a, z, ix)
-
-    # TODO test orthogonal with unsorted ints
 
     def test_orthogonal_indexing_1d_int_set(self):
 
@@ -1046,8 +1059,9 @@ class TestArray(unittest.TestCase):
         # test with different degrees of sparseness
         for p in 0.5, 0.1, 0.01:
             ix0 = np.random.choice(a.shape[0], size=int(a.shape[0] * p), replace=True)
-            ix0.sort()
             ix1 = np.random.choice(a.shape[1], size=int(a.shape[1] * .5), replace=True)
+            self._test_orthogonal_indexing_2d_common_set(v, a, z, ix0, ix1)
+            ix0.sort()
             ix1.sort()
             self._test_orthogonal_indexing_2d_common_set(v, a, z, ix0, ix1)
 
@@ -1107,10 +1121,11 @@ class TestArray(unittest.TestCase):
         # test with different degrees of sparseness
         for p in 0.5, 0.1, 0.01:
             ix0 = np.random.choice(a.shape[0], size=int(a.shape[0] * p), replace=True)
-            ix0.sort()
             ix1 = np.random.choice(a.shape[1], size=int(a.shape[1] * .5), replace=True)
-            ix1.sort()
             ix2 = np.random.choice(a.shape[2], size=int(a.shape[2] * .5), replace=True)
+            self._test_orthogonal_indexing_3d_common_set(v, a, z, ix0, ix1, ix2)
+            ix0.sort()
+            ix1.sort()
             ix2.sort()
             self._test_orthogonal_indexing_3d_common_set(v, a, z, ix0, ix1, ix2)
 
@@ -1126,6 +1141,11 @@ class TestArray(unittest.TestCase):
         # test with different degrees of sparseness
         for p in 0.5, 0.1, 0.01:
             ix = np.random.choice(a.shape[0], size=int(a.shape[0] * p), replace=True)
+            expect = a[ix]
+            actual = z.get_coordinate_selection(ix)
+            assert_array_equal(expect, actual)
+            actual = z.vindex[ix]
+            assert_array_equal(expect, actual)
             ix.sort()
             expect = a[ix]
             actual = z.get_coordinate_selection(ix)
@@ -1181,10 +1201,6 @@ class TestArray(unittest.TestCase):
             n = int(a.size * p)
             ix0 = np.random.choice(a.shape[0], size=n, replace=True)
             ix1 = np.random.choice(a.shape[1], size=n, replace=True)
-            srt = np.lexsort((ix0, ix1))
-            ix0 = ix0[srt]
-            ix1 = ix1[srt]
-
             selections = [
                 # index both axes with array
                 (ix0, ix1),
@@ -1201,15 +1217,35 @@ class TestArray(unittest.TestCase):
                 actual = z.vindex[selection]
                 assert_array_equal(expect, actual)
 
-        # not monotonically increasing
+            srt = np.lexsort((ix0, ix1))
+            ix0 = ix0[srt]
+            ix1 = ix1[srt]
+            selections = [
+                # index both axes with array
+                (ix0, ix1),
+                # mixed indexing with array / int
+                (ix0, 4),
+                (42, ix1),
+                (42, 4),
+            ]
+
+            for selection in selections:
+                expect = a[selection]
+                actual = z.get_coordinate_selection(selection)
+                assert_array_equal(expect, actual)
+                actual = z.vindex[selection]
+                assert_array_equal(expect, actual)
+
+        # not monotonically increasing (first dim)
         ix0 = [3, 3, 4, 2, 5]
         ix1 = [1, 3, 5, 7, 9]
         expect = a[ix0, ix1]
         actual = z.get_coordinate_selection((ix0, ix1))
         assert_array_equal(expect, actual)
-        # not monotonically increasing
+
+        # not monotonically increasing (second dim)
         ix0 = [1, 1, 2, 2, 5]
-        ix1 = [1, 3, 2, 1, 7]
+        ix1 = [1, 3, 2, 1, 0]
         expect = a[ix0, ix1]
         actual = z.get_coordinate_selection((ix0, ix1))
         assert_array_equal(expect, actual)
@@ -1265,8 +1301,9 @@ class TestArray(unittest.TestCase):
             ]
             for selection in selections:
                 expect = oindex(a, selection)
-                out = self.create_array(shape=expect.shape, chunks=10, dtype=expect.dtype,
-                                        fill_value=0)
+                # out = self.create_array(shape=expect.shape, chunks=10, dtype=expect.dtype,
+                #                         fill_value=0)
+                out = np.zeros(expect.shape, dtype=expect.dtype)
                 z.get_orthogonal_selection(selection, out=out)
                 assert_array_equal(expect, out[:])
 
