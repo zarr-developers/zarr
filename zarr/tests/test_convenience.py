@@ -8,7 +8,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 
-from zarr.convenience import open, save, save_group, load
+from zarr.convenience import open, save, save_group, load, copy_store
 from zarr.storage import atexit_rmtree
 from zarr.core import Array
 from zarr.hierarchy import Group
@@ -84,3 +84,40 @@ def test_lazy_loader():
     assert sorted(loader) == ['bar', 'foo']
     assert_array_equal(foo, loader['foo'])
     assert_array_equal(bar, loader['bar'])
+
+
+def test_copy_store():
+
+    # straight copy
+    s1 = dict()
+    s1['foo'] = b'xxx'
+    s1['bar/baz'] = b'yyy'
+    s1['bar/qux/spong'] = b'zzz'
+    s2 = dict()
+    copy_store(s1, s2)
+    assert len(s1) == len(s2)
+    assert s2['foo'] == s1['foo']
+    assert s2['bar/baz'] == s1['bar/baz']
+    assert s2['bar/qux/spong'] == s1['bar/qux/spong']
+
+    # copy sub-path at source
+    s2 = dict()
+    copy_store(s1, s2, source_path='bar')
+    assert 'foo' not in s2
+    assert s2['bar/baz'] == s1['baz']
+    assert s2['bar/qux/spong'] == s1['qux/spong']
+
+    # copy sub-path at dest
+    s2 = dict()
+    copy_store(s1, s2, dest_path='pub')
+    assert 'foo' not in s2
+    assert s2['foo'] == s1['pub/foo']
+    assert s2['bar/baz'] == s1['pub/bar/baz']
+    assert s2['bar/qux/spong'] == s1['pub/bar/qux/spong']
+
+    # copy sub-path at source and dest
+    s2 = dict()
+    copy_store(s1, s2, source_path='bar', dest_path='pub')
+    assert 'foo' not in s2
+    assert s2['bar/baz'] == s1['pub/baz']
+    assert s2['bar/qux/spong'] == s1['pub/qux/spong']
