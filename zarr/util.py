@@ -11,7 +11,8 @@ from asciitree.traversal import Traversal
 import numpy as np
 
 
-from zarr.compat import PY2, reduce, text_type, binary_type
+from .compat import PY2, reduce, text_type, binary_type
+from .vlen import parse_vlen_dtype
 
 
 def normalize_shape(shape):
@@ -114,6 +115,21 @@ def normalize_chunks(chunks, shape, typesize):
                    for s, c in zip(shape, chunks))
 
     return chunks
+
+
+def normalize_dtype(dtype):
+
+    if isinstance(dtype, str) and dtype.startswith('vlen'):
+        dtype = parse_vlen_dtype(dtype)
+
+    else:
+        dtype = np.dtype(dtype)
+
+    if dtype.kind in 'mM':
+        raise ValueError('datetime64 and timedelta64 dtypes are not currently supported; '
+                         'please store the data using int64 instead')
+
+    return dtype
 
 
 # noinspection PyTypeChecker

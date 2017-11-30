@@ -9,6 +9,7 @@ import numpy as np
 
 from zarr.compat import PY2, binary_type
 from zarr.errors import MetadataError
+from .vlen import parse_vlen_dtype
 
 
 ZARR_FORMAT = 2
@@ -70,10 +71,23 @@ def encode_array_metadata(meta):
 
 
 def encode_dtype(d):
-    if d.fields is None:
+    if d == np.dtype(object) and d.metadata and 'vlen' in d.metadata:
+        vlen_type = d.metadata['vlen']
+        s = 'vlen:{}'.format(vlen_type)
+        if vlen_type == 'text':
+            vlen_encoding = d.metadata['encoding']
+            s += ':{}'.format(vlen_encoding)
+        return s
+    elif d.fields is None:
         return d.str
     else:
         return d.descr
+
+
+def _decode_dtype_vlen(d):
+    if d.startswith('vlen'):
+        d = parse_vlen_dtype(d)
+    return d
 
 
 def _decode_dtype_descr(d):
@@ -90,6 +104,7 @@ def _decode_dtype_descr(d):
 
 
 def decode_dtype(d):
+    d = _decode_dtype_vlen(d)
     d = _decode_dtype_descr(d)
     return np.dtype(d)
 

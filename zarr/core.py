@@ -1795,6 +1795,12 @@ class Array(object):
             else:
                 return str(n)
 
+        def dtypestr(t):
+            s = '%s' % t
+            if t == np.dtype(object) and t.metadata:
+                s += ' %r' % t.metadata
+            return s
+
         items = []
 
         # basic info
@@ -1802,7 +1808,7 @@ class Array(object):
             items += [('Name', self.name)]
         items += [
             ('Type', typestr(self)),
-            ('Data type', '%s' % self.dtype),
+            ('Data type', dtypestr(self.dtype)),
             ('Shape', str(self.shape)),
             ('Chunk shape', str(self.chunks)),
             ('Order', self.order),
