@@ -12,7 +12,7 @@ import numpy as np
 
 
 from .compat import PY2, reduce, text_type, binary_type
-from .vlen import parse_vlen_dtype
+from .vlen import parse_vlen_dtype, is_vlen_dtype
 
 
 def normalize_shape(shape):
@@ -202,7 +202,32 @@ def normalize_order(order):
 
 def normalize_fill_value(fill_value, dtype):
 
-    if fill_value is None:
+    if is_vlen_dtype(dtype):
+        vlen_type = dtype.metadata['vlen']
+
+        if vlen_type == 'bytes':
+            if fill_value in [None, 0]:
+                fill_value = b''
+            elif not isinstance(fill_value, binary_type):
+                raise ValueError('fill_value {!r} is not valid for vlen:bytes dtype; '
+                                 'must be a binary string'.format(fill_value))
+
+        elif vlen_type == 'text':
+            if fill_value in [None, 0]:
+                fill_value = ''
+            elif not isinstance(fill_value, text_type):
+                raise ValueError('fill_value {!r} is not valid for vlen:text dtype; '
+                                 'must be a unicode string'.format(fill_value))
+
+        else:
+            # assume numpy vlen_type
+            if fill_value in [None, 0]:
+                fill_value = b''  # compact way to represent an empty array
+            else:
+                fill_value = np.asarray(fill_value, dtype=vlen_type)
+                assert fill_value.ndim == 1  # TODO value error with message
+
+    elif fill_value is None:
         # no fill value
         pass
 
@@ -233,6 +258,7 @@ def normalize_fill_value(fill_value, dtype):
             # re-raise with our own error message to be helpful
             raise ValueError('fill_value {!r} is not valid for dtype {}; nested '
                              'exception: {}'.format(fill_value, dtype, e))
+
     return fill_value
 
 
@@ -313,7 +339,7 @@ def info_html_report(items):
                   '<th style="text-align: left">%s</th>' \
                   '<td style="text-align: left">%s</td>' \
                   '</tr>' \
-                  % (k, v)
+                  % (k, v.replace('<', '&lt;'))
     report += '</tbody>'
     report += '</table>'
     return report

@@ -22,6 +22,7 @@ from zarr.indexing import (OIndex, OrthogonalIndexer, BasicIndexer, VIndex,
                            CoordinateIndexer, MaskIndexer, check_fields, pop_fields,
                            ensure_tuple, is_scalar, is_contiguous_selection,
                            err_too_many_indices, check_no_multi_fields)
+from zarr.vlen import is_vlen_dtype, serialize_vlen_dtype, VlenBytesCodec
 
 
 # noinspection PyUnresolvedReferences
@@ -127,6 +128,16 @@ class Array(object):
         # initialize indexing helpers
         self._oindex = OIndex(self)
         self._vindex = VIndex(self)
+
+        # initialize vlen codec
+        vlen_codec = None
+        if is_vlen_dtype(self._dtype):
+            vlen_type = self._dtype.metadata['vlen']
+            if vlen_type == 'bytes':
+                vlen_codec = VlenBytesCodec()
+            else:
+                raise NotImplementedError
+        self._vlen_codec = vlen_codec
 
     def _load_metadata(self):
         """(Re)load metadata from store."""
@@ -1564,7 +1575,8 @@ class Array(object):
                     not fields and
                     is_contiguous_selection(out_selection) and
                     is_total_slice(chunk_selection, self._chunks) and
-                    not self._filters):
+                    not self._filters and
+                    not self._vlen_codec):
 
                 dest = out[out_selection]
                 write_direct = (
@@ -1676,10 +1688,14 @@ class Array(object):
                 if self._fill_value is not None:
                     chunk = np.empty(self._chunks, dtype=self._dtype, order=self._order)
                     chunk.fill(self._fill_value)
-                else:
+                elif self._dtype != object:
                     # N.B., use zeros here so any region beyond the array has consistent
                     # and compressible data
                     chunk = np.zeros(self._chunks, dtype=self._dtype, order=self._order)
+                else:
+                    # this should fill with None which is more consistent with numpy
+                    # behaviour for empty object arrays
+                    chunk = np.empty(self._chunks, dtype=self._dtype, order=self._order)
 
             else:
 
@@ -1718,6 +1734,10 @@ class Array(object):
             for f in self._filters[::-1]:
                 chunk = f.decode(chunk)
 
+        # handle vlen
+        if self._vlen_codec:
+            chunk = self._vlen_codec.decode(chunk)
+
         # view as correct dtype
         if isinstance(chunk, np.ndarray):
             chunk = chunk.view(self._dtype)
@@ -1730,6 +1750,10 @@ class Array(object):
         return chunk
 
     def _encode_chunk(self, chunk):
+
+        # check for vlen
+        if self._vlen_codec:
+            chunk = self._vlen_codec.encode(chunk)
 
         # apply filters
         if self._filters:
@@ -1796,9 +1820,10 @@ class Array(object):
                 return str(n)
 
         def dtypestr(t):
-            s = '%s' % t
-            if t == np.dtype(object) and t.metadata:
-                s += ' %r' % t.metadata
+            if t == np.dtype(object) and t.metadata and 'vlen' in t.metadata:
+                s = serialize_vlen_dtype(t)
+            else:
+                s = str(t)
             return s
 
         items = []

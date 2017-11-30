@@ -9,7 +9,7 @@ import numpy as np
 
 from zarr.compat import PY2, binary_type
 from zarr.errors import MetadataError
-from .vlen import parse_vlen_dtype
+from .vlen import parse_vlen_dtype, serialize_vlen_dtype, is_vlen_dtype
 
 
 ZARR_FORMAT = 2
@@ -72,12 +72,7 @@ def encode_array_metadata(meta):
 
 def encode_dtype(d):
     if d == np.dtype(object) and d.metadata and 'vlen' in d.metadata:
-        vlen_type = d.metadata['vlen']
-        s = 'vlen:{}'.format(vlen_type)
-        if vlen_type == 'text':
-            vlen_encoding = d.metadata['encoding']
-            s += ':{}'.format(vlen_encoding)
-        return s
+        return serialize_vlen_dtype(d)
     elif d.fields is None:
         return d.str
     else:
@@ -142,55 +137,69 @@ FLOAT_FILLS = {
 def decode_fill_value(v, dtype):
     # early out
     if v is None:
-        return v
-    if dtype.kind == 'f':
+        pass
+    elif dtype.kind == 'f':
         if v == 'NaN':
-            return np.nan
+            v = np.nan
         elif v == 'Infinity':
-            return np.PINF
+            v = np.PINF
         elif v == '-Infinity':
-            return np.NINF
+            v = np.NINF
         else:
-            return np.array(v, dtype=dtype)[()]
+            v = np.array(v, dtype=dtype)[()]
     elif dtype.kind in 'SV':
         try:
             v = base64.standard_b64decode(v)
             v = np.array(v, dtype=dtype)[()]
-            return v
         except Exception:
             # be lenient, allow for other values that may have been used before base64
             # encoding and may work as fill values, e.g., the number 0
-            return v
+            pass
     elif dtype.kind == 'U':
         # leave as-is
-        return v
+        pass
+    elif is_vlen_dtype(dtype):
+        vlen_type = dtype.metadata['vlen']
+        if vlen_type == 'text':
+            pass
+        else:
+            v = base64.standard_b64decode(v)
+            if vlen_type != 'bytes':
+                v = np.frombuffer(v, dtype=vlen_type)
     else:
-        return np.array(v, dtype=dtype)[()]
+        v = np.array(v, dtype=dtype)[()]
+    return v
 
 
 def encode_fill_value(v, dtype):
     # early out
     if v is None:
-        return v
-    if dtype.kind == 'f':
+        pass
+    elif dtype.kind == 'f':
         if np.isnan(v):
-            return 'NaN'
+            v = 'NaN'
         elif np.isposinf(v):
-            return 'Infinity'
+            v = 'Infinity'
         elif np.isneginf(v):
-            return '-Infinity'
+            v = '-Infinity'
         else:
-            return float(v)
+            v = float(v)
     elif dtype.kind in 'ui':
-        return int(v)
+        v = int(v)
     elif dtype.kind == 'b':
-        return bool(v)
+        v = bool(v)
     elif dtype.kind in 'SV':
         v = base64.standard_b64encode(v)
         if not PY2:
             v = str(v, 'ascii')
-        return v
     elif dtype.kind == 'U':
-        return v
-    else:
-        return v
+        pass
+    elif is_vlen_dtype(dtype):
+        vlen_type = dtype.metadata['vlen']
+        if vlen_type == 'text':
+            pass
+        else:
+            v = base64.standard_b64encode(v)
+            if not PY2:
+                v = str(v, 'ascii')
+    return v
