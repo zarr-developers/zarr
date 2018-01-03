@@ -565,7 +565,7 @@ class Group(MutableMapping):
         base_len = len(self.name)
         return self.visitvalues(lambda o: func(o.name[base_len:].lstrip("/"), o))
 
-    def tree(self, expand=False, level=None):
+    def tree(self, expand=False, level=None, props=None):
         """Provide a ``print``-able display of the hierarchy.
 
         Parameters
@@ -574,6 +574,10 @@ class Group(MutableMapping):
             Only relevant for HTML representation. If True, tree will be fully expanded.
         level : int, optional
             Maximum depth to descend into hierarchy.
+        props : sequence of str
+            Array properties to show. May slow down tree construction if working with
+            remote data, as showing properties requires retrieving metadata for each
+            array in the tree.
 
         Examples
         --------
@@ -605,7 +609,7 @@ class Group(MutableMapping):
 
         """
 
-        return TreeViewer(self, expand=expand, level=level)
+        return TreeViewer(self, expand=expand, level=level, props=props)
 
     def _write_op(self, f, *args, **kwargs):
 

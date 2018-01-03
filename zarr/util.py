@@ -483,11 +483,16 @@ tree_array_icon = 'fa fa-table'
 
 class TreeViewer(object):
 
-    def __init__(self, group, expand=False, level=None):
+    def __init__(self, group, expand=False, level=None, props=None):
 
         self.group = group
         self.expand = expand
         self.level = level
+        if isinstance(props, str):
+            props = props.split(',')
+        if props:
+            props = [p.strip() for p in props]
+        self.props = props
 
         self.text_kwargs = dict(
             horiz_len=2,

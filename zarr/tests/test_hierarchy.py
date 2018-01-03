@@ -1139,13 +1139,13 @@ def test_group_key_completions():
     assert 'asdf;' in k
 
 
-def _check_tree(g, expect_bytes, expect_text):
+def _check_tree(g, expect_bytes, expect_text, props=None):
     assert expect_bytes == bytes(g.tree())
-    assert expect_text == text_type(g.tree())
+    assert expect_text == text_type(g.tree(props=props))
     expect_repr = expect_text
     if PY2:  # pragma: py3 no cover
         expect_repr = expect_bytes
-    assert expect_repr == repr(g.tree())
+    assert expect_repr == repr(g.tree(props=props))
     # test _repr_html_ lightly
     # noinspection PyProtectedMember
     html = g.tree()._repr_html_().strip()
@@ -1153,7 +1153,8 @@ def _check_tree(g, expect_bytes, expect_text):
     assert html.endswith('</script>')
 
 
-def test_tree():
+def test_tree_no_props():
+
     # setup
     g1 = group()
     g2 = g1.create_group('foo')
@@ -1168,14 +1169,14 @@ def test_tree():
      +-- bar
      |   +-- baz
      |   +-- quux
-     |       +-- baz (100,) float64
+     |       +-- baz[]
      +-- foo""").encode()
     expect_text = textwrap.dedent(u"""\
     /
      ├── bar
      │   ├── baz
      │   └── quux
-     │       └── baz (100,) float64
+     │       └── baz[]
      └── foo""")
     _check_tree(g1, expect_bytes, expect_text)
 
@@ -1191,10 +1192,59 @@ def test_tree():
     bar
      +-- baz
      +-- quux
-         +-- baz (100,) float64""").encode()
+         +-- baz[]""").encode()
     expect_text = textwrap.dedent(u"""\
     bar
      ├── baz
      └── quux
-         └── baz (100,) float64""")
+         └── baz[]""")
     _check_tree(g3, expect_bytes, expect_text)
+
+
+def test_tree_with_props():
+
+    # setup
+    g1 = group()
+    g2 = g1.create_group('foo')
+    g3 = g1.create_group('bar')
+    g3.create_group('baz')
+    g5 = g3.create_group('quux')
+    g5.create_dataset('baz', shape=100, chunks=10)
+    props = 'shape,dtype'
+
+    # test root group
+    expect_bytes = textwrap.dedent(u"""\
+    /
+     +-- bar
+     |   +-- baz
+     |   +-- quux
+     |       +-- baz[] (100,) float64
+     +-- foo""").encode()
+    expect_text = textwrap.dedent(u"""\
+    /
+     ├── bar
+     │   ├── baz
+     │   └── quux
+     │       └── baz[] (100,) float64
+     └── foo""")
+    _check_tree(g1, expect_bytes, expect_text, props)
+
+    # test different group
+    expect_bytes = textwrap.dedent(u"""\
+    foo""").encode()
+    expect_text = textwrap.dedent(u"""\
+    foo""")
+    _check_tree(g2, expect_bytes, expect_text, props)
+
+    # test different group
+    expect_bytes = textwrap.dedent(u"""\
+    bar
+     +-- baz
+     +-- quux
+         +-- baz[] (100,) float64""").encode()
+    expect_text = textwrap.dedent(u"""\
+    bar
+     ├── baz
+     └── quux
+         └── baz[] (100,) float64""")
+    _check_tree(g3, expect_bytes, expect_text, props)
