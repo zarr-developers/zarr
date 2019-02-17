@@ -108,6 +108,9 @@ class Array(object):
         # N.B., expect at this point store is fully initialized with all
         # configuration metadata fully specified and normalized
 
+        if isinstance(store, dict):
+            raise TypeError("Please use Zarr's DictStore instead")
+
         self._store = store
         self._chunk_store = chunk_store
         self._path = normalize_storage_path(path)
@@ -1778,10 +1781,6 @@ class Array(object):
         else:
             cdata = chunk
 
-        # ensure in-memory data is immutable and easy to compare
-        if isinstance(self.chunk_store, dict):
-            cdata = ensure_bytes(cdata)
-
         return cdata
 
     def __repr__(self):
@@ -1812,10 +1811,10 @@ class Array(object):
         Order              : C
         Read-only          : False
         Compressor         : Blosc(cname='lz4', clevel=5, shuffle=SHUFFLE, blocksize=0)
-        Store type         : builtins.dict
+        Store type         : zarr.storage.DictStore
         No. bytes          : 4000000 (3.8M)
-        No. bytes stored   : ...
-        Storage ratio      : ...
+        No. bytes stored   : 320
+        Storage ratio      : 12500.0
         Chunks initialized : 0/10
 
         """

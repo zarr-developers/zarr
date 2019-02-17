@@ -7,7 +7,7 @@ import numpy as np
 
 
 from zarr.core import Array
-from zarr.storage import (DirectoryStore, init_array, contains_array, contains_group,
+from zarr.storage import (DictStore, DirectoryStore, init_array, contains_array, contains_group,
                           default_compressor, normalize_storage_path, ZipStore)
 from numcodecs.registry import codec_registry
 from zarr.errors import err_contains_array, err_contains_group, err_array_not_found
@@ -98,7 +98,7 @@ def create(shape, chunks=True, dtype=None, compressor='default',
     Example with some filters, and also storing chunks separately from metadata::
 
         >>> from numcodecs import Quantize, Adler32
-        >>> store, chunk_store = dict(), dict()
+        >>> store, chunk_store = DictStore(), DictStore()
         >>> z = zarr.create((10000, 10000), chunks=(1000, 1000), dtype='f8',
         ...                 filters=[Quantize(digits=2, dtype='f8'), Adler32()],
         ...                 store=store, chunk_store=chunk_store)
@@ -125,7 +125,7 @@ def create(shape, chunks=True, dtype=None, compressor='default',
     return z
 
 
-def normalize_store_arg(store, clobber=False, default=dict):
+def normalize_store_arg(store, clobber=False, default=DictStore):
     if store is None:
         return default()
     elif isinstance(store, str):
