@@ -569,8 +569,8 @@ class DictStore(MutableMapping):
     def __eq__(self, other):
         return (
             isinstance(other, DictStore) and
-            self.root == other.root and
-            self.cls == other.cls
+            self.cls == other.cls and
+            self.root is other.root
         )
 
     def keys(self):
@@ -1842,6 +1842,13 @@ class LRUStoreCache(MutableMapping):
             value = self._values_cache.pop(key)
             self._current_size -= buffer_size(value)
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, LRUStoreCache) and
+            self._store is other._store and
+            self._values_cache is other._values_cache
+        )
+
     def __getitem__(self, key):
         try:
             # first try to obtain the value from the cache
@@ -2113,6 +2120,14 @@ class SQLiteStore(MutableMapping):
         # close cursor and db objects
         self.cursor.close()
         self.db.close()
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, SQLiteStore) and
+            self.path == other.path and
+            self.kwargs == other.kwargs and
+            self.db == other.db
+        )
 
     def __getitem__(self, key):
         value = self.cursor.execute('SELECT v FROM zarr WHERE (k = ?)', (key,))
