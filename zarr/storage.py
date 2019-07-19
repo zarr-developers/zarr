@@ -32,6 +32,7 @@ from threading import Lock, RLock
 import glob
 import warnings
 
+import numpy as np
 
 from zarr.util import (json_loads, normalize_shape, normalize_chunks, normalize_order,
                        normalize_storage_path, buffer_size,
@@ -719,7 +720,7 @@ class DirectoryStore(MutableMapping):
 
     """
 
-    def __init__(self, path):
+    def __init__(self, path, memmap=False):
 
         # guard conditions
         path = os.path.abspath(path)
@@ -727,12 +728,16 @@ class DirectoryStore(MutableMapping):
             err_fspath_exists_notdir(path)
 
         self.path = path
+        self.memmap = memmap
 
     def __getitem__(self, key):
         filepath = os.path.join(self.path, key)
         if os.path.isfile(filepath):
-            with open(filepath, 'rb') as f:
-                return f.read()
+            if self.memmap:
+                return memoryview(np.memmap(filepath, mode='r'))
+            else:
+                with open(filepath, 'rb') as f:
+                    return f.read()
         else:
             raise KeyError(key)
 
@@ -814,6 +819,29 @@ class DirectoryStore(MutableMapping):
 
     def __len__(self):
         return sum(1 for _ in self.keys())
+
+    __marker = object()
+
+    def pop(self, key, default=__marker):
+        filepath = os.path.join(self.path, key)
+        if os.path.isfile(filepath):
+            with open(filepath, 'rb') as f:
+                value = f.read()
+            os.remove(filepath)
+            return value
+        elif default is self.__marker:
+            raise KeyError(key)
+        else:
+            return default
+
+    def popitem(self):
+        try:
+            key = next(self.keys())
+        except StopIteration:
+            raise KeyError("Store empty")
+        else:
+            value = self.pop(key)
+            return (key, value)
 
     def dir_path(self, path=None):
         store_path = normalize_storage_path(path)
@@ -906,10 +934,10 @@ class TempStore(DirectoryStore):
     """
 
     # noinspection PyShadowingBuiltins
-    def __init__(self, suffix='', prefix='zarr', dir=None):
+    def __init__(self, suffix='', prefix='zarr', dir=None, memmap=False):
         path = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=dir)
         atexit.register(atexit_rmtree, path)
-        super(TempStore, self).__init__(path)
+        super(TempStore, self).__init__(path, memmap=memmap)
 
 
 _prog_ckey = re.compile(r'^(\d+)(\.\d+)+$')
@@ -992,8 +1020,8 @@ class NestedDirectoryStore(DirectoryStore):
 
     """
 
-    def __init__(self, path):
-        super(NestedDirectoryStore, self).__init__(path)
+    def __init__(self, path, memmap=False):
+        super(NestedDirectoryStore, self).__init__(path, memmap=memmap)
 
     def __getitem__(self, key):
         key = _nested_map_ckey(key)
@@ -1016,6 +1044,10 @@ class NestedDirectoryStore(DirectoryStore):
             isinstance(other, NestedDirectoryStore) and
             self.path == other.path
         )
+
+    def pop(self, key, *args, **kwargs):
+        key = _nested_map_ckey(key)
+        return super(NestedDirectoryStore, self).pop(key, *args, **kwargs)
 
     def listdir(self, path=None):
         children = super(NestedDirectoryStore, self).listdir(path=path)
