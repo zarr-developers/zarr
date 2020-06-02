@@ -931,6 +931,13 @@ class TestGroup(unittest.TestCase):
             d[:] = np.arange(100)
 
 
+class TestGroupWithV3MemoryStore(TestGroup):
+
+    @staticmethod
+    def create_store():
+        from zarr3 import V2from3Adapter, MemoryStoreV3, StoreComparer
+        return StoreComparer(MemoryStore(), V2from3Adapter(MemoryStoreV3())), None
+
 class TestGroupWithMemoryStore(TestGroup):
 
     @staticmethod

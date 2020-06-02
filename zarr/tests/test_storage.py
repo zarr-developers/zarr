@@ -745,6 +745,23 @@ def setdel_hierarchy_checks(store):
     assert 'r/s' not in store
 
 
+class TestAdapter(StoreTests, unittest.TestCase):
+
+    def create_store(self):
+        from zarr3 import V2from3Adapter, MemoryStoreV3, StoreComparer
+        self._store = StoreComparer(MemoryStore(), V2from3Adapter(MemoryStoreV3()))
+        return self._store
+
+    def test_store_contains_bytes(self):
+        store = self.create_store()
+        store['foo'] = np.array([97, 98, 99, 100, 101], dtype=np.uint8)
+        assert store['foo'] == b'abcde'
+        
+    def test_clear(self):
+        super().test_clear()
+        assert self._store.tested._v3store._backend == {}
+
+
 class TestMemoryStore(StoreTests, unittest.TestCase):
 
     def create_store(self):
