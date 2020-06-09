@@ -938,6 +938,18 @@ class TestGroupWithV3MemoryStore(TestGroup):
         from zarr3 import V2from3Adapter, MemoryStoreV3, StoreComparer
         return StoreComparer(MemoryStore(), V2from3Adapter(MemoryStoreV3())), None
 
+class TestGroupWithV3RedisStore(TestGroup):
+
+    @staticmethod
+    def create_store():
+        from zarr3 import V2from3Adapter, RedisStore, StoreComparer
+        rs = RedisStore()
+        rs.initialize()
+        return StoreComparer(MemoryStore(), V2from3Adapter(rs)), None
+
+    def test_pickle(self):
+        pass
+
 class TestGroupWithMemoryStore(TestGroup):
 
     @staticmethod
