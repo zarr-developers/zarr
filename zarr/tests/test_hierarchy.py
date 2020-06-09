@@ -947,8 +947,6 @@ class TestGroupWithV3RedisStore(TestGroup):
         rs.initialize()
         return StoreComparer(MemoryStore(), V2from3Adapter(rs)), None
 
-    def test_pickle(self):
-        pass
 
 class TestGroupWithMemoryStore(TestGroup):
 
