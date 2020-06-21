@@ -39,7 +39,7 @@ async def test_2():
     assert isinstance(store.get("meta/g1.group"), bytes)
 
 
-@pytest.mark.parametrize("klass", [MemoryStoreV3, RedisStore])
+@pytest.mark.parametrize("klass", [MemoryStoreV3, RedisV3Store])
 def test_misc(klass):
 
     _store = klass()
