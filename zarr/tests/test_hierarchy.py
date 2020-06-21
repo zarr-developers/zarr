@@ -952,6 +952,7 @@ class TestGroupWithV3RedisStore(TestGroup):
 
     @staticmethod
     def create_store():
+        pytest.importskip('redio')
         from zarr.v3 import V2from3Adapter, RedisV3Store, StoreComparer
         rs = RedisV3Store()
         rs.initialize()
