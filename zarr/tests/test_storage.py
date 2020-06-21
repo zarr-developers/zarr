@@ -745,10 +745,10 @@ def setdel_hierarchy_checks(store):
     assert 'r/s' not in store
 
 
-class TestAdapter(StoreTests, unittest.TestCase):
+class TestV3Adapter(StoreTests, unittest.TestCase):
 
     def create_store(self):
-        from zarr3 import V2from3Adapter, MemoryStoreV3, StoreComparer
+        from zarr.v3 import V2from3Adapter, MemoryStoreV3, StoreComparer
         self._store = StoreComparer(MemoryStore(), V2from3Adapter(MemoryStoreV3()))
         return self._store
 

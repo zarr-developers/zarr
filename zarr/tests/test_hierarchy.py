@@ -935,7 +935,7 @@ class TestGroupWithV3MemoryStore(TestGroup):
 
     @staticmethod
     def create_store():
-        from zarr3 import V2from3Adapter, MemoryStoreV3, StoreComparer
+        from zarr.v3 import V2from3Adapter, MemoryStoreV3, StoreComparer
         return StoreComparer(MemoryStore(), V2from3Adapter(MemoryStoreV3())), None
 
 class TestGroupWithV3DirectoryStore(TestGroup):
@@ -943,8 +943,8 @@ class TestGroupWithV3DirectoryStore(TestGroup):
     @staticmethod
     def create_store():
         path = tempfile.mkdtemp(dir='./tmp')
-        #atexit.register(atexit_rmtree, path)
-        from zarr3 import V2from3Adapter, MemoryStoreV3, StoreComparer, V3DirectoryStore
+        atexit.register(atexit_rmtree, path)
+        from zarr.v3 import V2from3Adapter, MemoryStoreV3, StoreComparer, V3DirectoryStore
         return StoreComparer(MemoryStore(), V2from3Adapter(V3DirectoryStore(path))), None
     
 
@@ -952,8 +952,8 @@ class TestGroupWithV3RedisStore(TestGroup):
 
     @staticmethod
     def create_store():
-        from zarr3 import V2from3Adapter, RedisStore, StoreComparer
-        rs = RedisStore()
+        from zarr.v3 import V2from3Adapter, RedisV3Store, StoreComparer
+        rs = RedisV3Store()
         rs.initialize()
         return StoreComparer(MemoryStore(), V2from3Adapter(rs)), None
 
