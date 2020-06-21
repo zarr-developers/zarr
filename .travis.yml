@@ -43,6 +43,7 @@ before_script:
 
 install:
   - pip install -U pip setuptools wheel tox-travis coveralls
+  - pip install -U pip trio pytest-trio redio
 
 script:
   - tox
