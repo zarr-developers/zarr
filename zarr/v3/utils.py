@@ -35,9 +35,25 @@ def nested_run():
             GLOBAL_RUN_CONTEXT.__dict__.update(_dict)
 
 
-class AutoSync:
-    def __init_subclass__(cls, *args, **kwargs):
-        attrs = [c for c in cls.__dict__.keys() if c.startswith("async_")]
+class _meta(type):
+     def __init__(cls, *args, **kwargs):
+         cls._sync = None
+
+
+     @property
+     def sync(cls):
+         if cls._sync:
+             return cls._sync
+         cls._sync = cls._syncify()
+         return cls._sync
+
+class AutoSync(metaclass=_meta):
+   
+    @classmethod
+    def _syncify(cls, *args, **kwargs):
+        class SyncSubclass(cls):
+            pass
+        attrs = [c for c in dir(cls) if c.startswith("async_")]
         for attr in attrs:
             meth = getattr(cls, attr)
             if inspect.iscoroutinefunction(meth):
@@ -57,4 +73,6 @@ class AutoSync:
                     sync_version.__doc__ = f"Automatically generated sync version of {attr}.\n\n{meth.__doc__}"
                     return sync_version
 
-                setattr(cls, attr[6:], cl(meth))
+                setattr(SyncSubclass, attr[6:], cl(meth))
+
+        return SyncSubclass

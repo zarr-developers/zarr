@@ -936,25 +936,33 @@ class TestGroupWithV3MemoryStore(TestGroup):
     @staticmethod
     def create_store():
         from zarr.v3 import V2from3Adapter, MemoryStoreV3, StoreComparer
-        return StoreComparer(MemoryStore(), V2from3Adapter(MemoryStoreV3())), None
+        return StoreComparer(MemoryStore(), V2from3Adapter(MemoryStoreV3.sync())), None
+    
+    def test_pickle(self):
+        "Can't pickle because of the Sync Magics"
+        pass
 
 class TestGroupWithV3DirectoryStore(TestGroup):
 
     @staticmethod
     def create_store():
-        path = tempfile.mkdtemp(dir='./tmp')
+        path = tempfile.mkdtemp()
         atexit.register(atexit_rmtree, path)
         from zarr.v3 import V2from3Adapter, MemoryStoreV3, StoreComparer, V3DirectoryStore
-        return StoreComparer(MemoryStore(), V2from3Adapter(V3DirectoryStore(path))), None
+        return StoreComparer(MemoryStore(), V2from3Adapter(V3DirectoryStore.sync(path))), None
     
+
+    def test_pickle(self):
+        "Can't pickle because of the Sync Magics"
+        pass
 
 class TestGroupWithV3RedisStore(TestGroup):
 
     @staticmethod
     def create_store():
-        pytest.importskip('redio')
+        pytest.importorskip('redio')
         from zarr.v3 import V2from3Adapter, RedisV3Store, StoreComparer
-        rs = RedisV3Store()
+        rs = RedisV3Store.sync()
         rs.initialize()
         return StoreComparer(MemoryStore(), V2from3Adapter(rs)), None
 

@@ -6,9 +6,9 @@ from zarr.v3 import MemoryStoreV3, RedisV3Store, V2from3Adapter, ZarrProtocolV3
 
 async def test_scenario():
 
-    store = MemoryStoreV3()
+    store = MemoryStoreV3.sync()
 
-    store.set("data/a", bytes(1))
+    await store.async_set("data/a", bytes(1))
 
     with pytest.raises(ValueError):
         store.get("arbitrary")
@@ -32,17 +32,17 @@ async def test_scenario():
 
 
 async def test_2():
-    protocol = ZarrProtocolV3()
+    protocol = ZarrProtocolV3(MemoryStoreV3)
     store = protocol._store
 
     await protocol.async_create_group("g1")
-    assert isinstance(store.get("meta/g1.group"), bytes)
+    assert isinstance(await store.async_get("meta/g1.group"), bytes)
 
 
 @pytest.mark.parametrize("klass", [MemoryStoreV3, RedisV3Store])
 def test_misc(klass):
 
-    _store = klass()
+    _store = klass.sync()
     _store.initialize()
     store = V2from3Adapter(_store)
 

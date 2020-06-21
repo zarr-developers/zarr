@@ -250,20 +250,21 @@ class MemoryStoreV3(BaseV3Store):
 
 
 class ZarrProtocolV3(AutoSync):
-    def __init__(self, store=MemoryStoreV3):
+    def __init__(self, store):
         self._store = store()
-        self.init_hierarchy()
+        if hasattr(self, 'init_hierarchy'):
+            self.init_hierarchy()
 
-    def init_hierarchy(self):
+    async def async_init_hierarchy(self):
         basic_info = {
             "zarr_format": "https://purl.org/zarr/spec/protocol/core/3.0",
             "metadata_encoding": "application/json",
             "extensions": [],
         }
         try:
-            self._store.get("zarr.json")
+            await self._store.async_get("zarr.json")
         except KeyError:
-            self._store.set("zarr.json", json.dumps(basic_info).encode())
+            await self._store.async_set("zarr.json", json.dumps(basic_info).encode())
 
     def _g_meta_key(self, key):
         return "meta/" + key + ".group"
