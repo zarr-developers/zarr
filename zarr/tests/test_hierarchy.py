@@ -938,6 +938,16 @@ class TestGroupWithV3MemoryStore(TestGroup):
         from zarr3 import V2from3Adapter, MemoryStoreV3, StoreComparer
         return StoreComparer(MemoryStore(), V2from3Adapter(MemoryStoreV3())), None
 
+class TestGroupWithV3DirectoryStore(TestGroup):
+
+    @staticmethod
+    def create_store():
+        path = tempfile.mkdtemp(dir='./tmp')
+        #atexit.register(atexit_rmtree, path)
+        from zarr3 import V2from3Adapter, MemoryStoreV3, StoreComparer, V3DirectoryStore
+        return StoreComparer(MemoryStore(), V2from3Adapter(V3DirectoryStore(path))), None
+    
+
 class TestGroupWithV3RedisStore(TestGroup):
 
     @staticmethod
