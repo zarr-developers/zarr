@@ -144,20 +144,8 @@ class BaseV3Store(AutoSync):
             raise KeyError(key)
 
     async def async_initialize(self):
-        """
+        pass
 
-        this is necessary to allow synchronous initialisation of async stores.
-        While you can do `await Constructor()` in async functions, in sync you
-        can't and need to do `Constructor().initialize()`.
-
-        One of the reason is that __init__ is synchronous so can't call async
-        methods.
-
-        """
-        return await self
-
-    async def __await__(self):
-        return self
 
 
 class V3DirectoryStore(BaseV3Store):
@@ -211,7 +199,7 @@ class RedisV3Store(BaseV3Store):
 
         self._backend = Redis("redis://localhost/")
 
-    async def __await__(self):
+    async def async_initialize(self):
         from redio import Redis
 
         self._backend = Redis("redis://localhost/")

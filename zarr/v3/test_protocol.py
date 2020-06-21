@@ -1,7 +1,7 @@
 import pytest
 
 from zarr.storage import init_group
-from zarr.v3 import MemoryStoreV3, RedisStore, V2from3Adapter, ZarrProtocolV3
+from zarr.v3 import MemoryStoreV3, RedisV3Store, V2from3Adapter, ZarrProtocolV3
 
 
 async def test_scenario():
