@@ -184,7 +184,7 @@ class V3DirectoryStore(BaseV3Store):
 
 
 class RedisV3Store(BaseV3Store):
-    def __init__(self, host, port):
+    def __init__(self, host=None, port=None):
         """initialisation is in _async initialize
         for early failure.
         """
