@@ -184,11 +184,12 @@ class V3DirectoryStore(BaseV3Store):
 
 
 class RedisV3Store(BaseV3Store):
-    def __init__(self):
+    def __init__(self, host, port):
         """initialisation is in _async initialize
         for early failure.
         """
-        pass
+        self.host = host
+        self.port = port
 
     def __getstate__(self):
         return {}
@@ -197,12 +198,12 @@ class RedisV3Store(BaseV3Store):
         self.__init__()
         from redio import Redis
 
-        self._backend = Redis("redis://localhost/")
+        self._backend = Redis("redis://localhost/", port=6379)
 
     async def async_initialize(self):
         from redio import Redis
 
-        self._backend = Redis("redis://localhost/")
+        self._backend = Redis("redis://localhost/", port=6379)
         b = self._backend()
         for k in await self._backend().keys():
             b.delete(k)

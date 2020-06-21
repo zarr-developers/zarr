@@ -22,3 +22,4 @@ s3fs==0.3.4; python_version > '3.0'
 # all async features in v3
 pytest-trio
 trio
+redio
