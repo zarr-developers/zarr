@@ -756,7 +756,7 @@ class TestV3Adapter(StoreTests, unittest.TestCase):
         store = self.create_store()
         store['foo'] = np.array([97, 98, 99, 100, 101], dtype=np.uint8)
         assert store['foo'] == b'abcde'
-        
+
     def test_clear(self):
         super().test_clear()
         assert self._store.tested._v3store._backend == {}

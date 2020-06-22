@@ -1,4 +1,3 @@
-import functools
 import inspect
 from contextlib import contextmanager
 
@@ -35,7 +34,7 @@ def nested_run():
             GLOBAL_RUN_CONTEXT.__dict__.update(_dict)
 
 
-class _meta(type):
+class _Meta(type):
     def __init__(cls, *args, **kwargs):
         cls._sync = None
 
@@ -47,7 +46,7 @@ class _meta(type):
         return cls._sync
 
 
-class AutoSync(metaclass=_meta):
+class AutoSync(metaclass=_Meta):
     @classmethod
     def _syncify(cls, *args, **kwargs):
         class SyncSubclass(cls):
@@ -62,7 +61,7 @@ class AutoSync(metaclass=_meta):
                     def sync_version(self, *args, **kwargs):
                         """
                         Automatically generated synchronous  version of {attr}
-                        
+
                         See {attr} documentation.
                         """
                         import trio
@@ -70,7 +69,10 @@ class AutoSync(metaclass=_meta):
                         with nested_run():
                             return trio.run(meth, self, *args)
 
-                    sync_version.__doc__ = f"Automatically generated sync version of {attr}.\n\n{meth.__doc__}"
+                    sync_version.__doc__ = (
+                        f"Automatically generated sync"
+                        " version of {attr}.\n\n{meth.__doc__}"
+                    )
                     return sync_version
 
                 setattr(SyncSubclass, attr[6:], cl(meth))

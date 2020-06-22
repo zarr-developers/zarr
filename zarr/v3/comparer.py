@@ -4,13 +4,15 @@ from collections.abc import MutableMapping
 
 class StoreComparer(MutableMapping):
     """
-    Compare two store implementations, and make sure to do the same operation on both stores. 
+    Compare two store implementations, and make sure to do the same operation on
+    both stores.
 
     The operation from the first store are always considered as reference and
     the will make sure the second store will return the same value, or raise
     the same exception where relevant.
 
-    This should have minimal impact on API, but can as some generators are reified and sorted to make sure they are identical.
+    This should have minimal impact on API, but can as some generators are
+    reified and sorted to make sure they are identical.
     """
 
     def __init__(self, reference, tested):
@@ -41,7 +43,7 @@ class StoreComparer(MutableMapping):
         # todo : not quite happy about casting here, maybe we shoudl stay strict ?
         from numcodecs.compat import ensure_bytes
 
-        values = ensure_bytes(value)
+        value = ensure_bytes(value)
         try:
             self.reference[key] = value
         except Exception as e:

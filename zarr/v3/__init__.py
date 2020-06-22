@@ -9,8 +9,8 @@ import os
 from collections.abc import MutableMapping
 from pathlib import Path
 from string import ascii_letters, digits
+from numcodecs.compat import ensure_bytes
 
-from .comparer import StoreComparer
 from .utils import AutoSync
 
 RENAMED_MAP = {
@@ -21,15 +21,16 @@ RENAMED_MAP = {
 
 class BaseV3Store(AutoSync):
     """
-    Base utility class to create a v3-complient store with extra checks and utilities. 
+    Base utility class to create a v3-complient store with extra checks and utilities.
 
-    It provides a number of default method implementation adding extra checks in order to ensure the correctness fo the implmentation.
+    It provides a number of default method implementation adding extra checks in
+    order to ensure the correctness fo the implmentation.
     """
 
     @staticmethod
     def _valid_path(key: str) -> bool:
         """
-        Verify that a key is confirm to the specification. 
+        Verify that a key is confirm to the specification.
 
         A key us any string containing only character in the range a-z, A-Z,
         0-9, or in the set /.-_ it will return True if that's the case, false
@@ -61,7 +62,8 @@ class BaseV3Store(AutoSync):
         to be implmented.
 
         Will ensure that the following are correct:
-            - return group metadata objects are json and contain a signel `attributes` keys.
+            - return group metadata objects are json and contain a signel
+            `attributes` keys.
         """
         assert self._valid_path(key)
         result = await self._get(key)
@@ -122,9 +124,9 @@ class BaseV3Store(AutoSync):
             }
             current = set(v.keys())
             # ets do some conversions.
-            # assert (
-            #    current == expected
-            # ), f"{current - expected} extra, {expected- current} missing in {v}"
+            assert (
+                current == expected
+            ), f"{current - expected} extra, {expected- current} missing in {v}"
 
             if key.endswith(".group"):
                 v = json.loads(value.decode())
@@ -174,11 +176,11 @@ class V3DirectoryStore(BaseV3Store):
         return path.write_bytes(value)
 
     async def async_list(self):
-        l = []
+        ll = []
         for it in os.walk(self.root):
             for file in it[2]:
-                l.append(os.path.join(it[0], file)[len(str(self.root)) + 1 :])
-        return l
+                ll.append(os.path.join(it[0], file)[len(str(self.root)) + 1:])
+        return ll
 
     async def async_delete(self, key):
         self.log.append("delete {}".format(key))
@@ -278,8 +280,8 @@ class ZarrProtocolV3(AutoSync):
 
     async def async_create_group(self, group_path: str):
         """
-        create a goup at `group_path`, 
-        we need to make sure none of the subpath of group_path are arrays. 
+        create a goup at `group_path`,
+        we need to make sure none of the subpath of group_path are arrays.
 
         say  path is g1/g2/g3, we want to check
 
@@ -299,7 +301,7 @@ class ZarrProtocolV3(AutoSync):
         )
 
     def _create_array_metadata(self, shape=(10,), dtype="<f64", chunk_shape=(1,)):
-        metadata = {
+        return {
             "shape": shape,
             "data_type": dtype,
             "chunk_grid": {
@@ -319,8 +321,8 @@ class ZarrProtocolV3(AutoSync):
 
     async def create_array(self, array_path: str):
         """
-        create a goup at `array_path`, 
-        we need to make sure none of the subpath of array_path are arrays. 
+        create a goup at `array_path`,
+        we need to make sure none of the subpath of array_path are arrays.
 
         say  path is g1/g2/d3, we want to check
 
@@ -347,7 +349,7 @@ class V2from3Adapter(MutableMapping):
     def __init__(self, v3store):
         """
 
-        Wrapper arround a v3store to give a v2 compatible interface. 
+        Wrapper arround a v3store to give a v2 compatible interface.
 
         Still have some rough edges, and try to do the sensible things for
         most case mostly key converstions so far.
@@ -357,10 +359,10 @@ class V2from3Adapter(MutableMapping):
         production.
 
 
-        This will try to do the followign conversions: 
-         - name of given keys `.zgroup` -> `.group` for example. 
+        This will try to do the followign conversions:
+         - name of given keys `.zgroup` -> `.group` for example.
          - path of storage (prefix with root/ meta// when relevant and vice versa.)
-         - try to ensure the stored objects are bytes before reachign the underlying store. 
+         - try to ensure the stored objects are bytes before reachign the underlying store.
          - try to adapt v2/v2 nested/flat structures
 
         THere will ikley need to be _some_
@@ -370,7 +372,8 @@ class V2from3Adapter(MutableMapping):
 
     def __getitem__(self, key):
         """
-        In v2  both metadata and data are mixed so we'll need to convert things that ends with .z to the metadata path.
+        In v2  both metadata and data are mixed so we'll need to convert things
+        that ends with .z to the metadata path.
         """
         assert isinstance(key, str), "expecting string got {key}".format(key=repr(key))
         v3key = self._convert_2_to_3_keys(key)
@@ -412,12 +415,11 @@ class V2from3Adapter(MutableMapping):
 
     def __setitem__(self, key, value):
         """
-        In v2  both metadata and data are mixed so we'll need to convert things that ends with .z to the metadata path.
+        In v2  both metadata and data are mixed so we'll need to convert things
+        that ends with .z to the metadata path.
         """
         # TODO convert to bytes if needed
-        from numcodecs.compat import ensure_bytes
 
-        parts = key.split("/")
         v3key = self._convert_2_to_3_keys(key)
         # convert chunk separator from ``.`` to ``/``
 
@@ -485,7 +487,7 @@ class V2from3Adapter(MutableMapping):
 
     def _convert_3_to_2_keys(self, v3key: str) -> str:
         """
-        todo: 
+        todo:
          - handle special .attribute which is merged with .zarray/.zgroup
          - look at the grid separator
         """
@@ -541,10 +543,10 @@ class V2from3Adapter(MutableMapping):
             self._v3store.delete(_item)
 
     def keys(self):
-        # TODO: not as stritforward.
-        # we need to actually poke internally at .group/.array to potentially return '.zattrs'
-        # if attribute is set.
-        # it also seem in soem case zattrs is set in arrays even if the rest of the infomation is not set.
+        # TODO: not as stritforward. we need to actually poke internally at
+        # .group/.array to potentially return '.zattrs' if attribute is set. it
+        # also seem in soem case zattrs is set in arrays even if the rest of the
+        # infomation is not set.
         key = self._v3store.list()
         fixed_paths = []
         for p in key:

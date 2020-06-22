@@ -50,6 +50,7 @@ def test_misc(klass):
 
     if isinstance(_store, MemoryStoreV3):
         assert store._v3store._backend == {
-            "meta/root.group": b'{\n    "zarr_format": "https://purl.org/zarr/spec/protocol/core/3.0"\n}'
+            "meta/root.group": b'{\n    "zarr_format": '
+            b'"https://purl.org/zarr/spec/protocol/core/3.0"\n}'
         }
     assert store[".zgroup"] == b'{\n    "zarr_format": 2\n}'
