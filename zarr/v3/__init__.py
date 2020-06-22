@@ -13,6 +13,9 @@ from numcodecs.compat import ensure_bytes
 
 from .utils import AutoSync
 
+# flake8: noqa
+from .comparer import StoreComparer
+
 RENAMED_MAP = {
     "dtype": "data_type",
     "order": "chunk_memory_layout",
@@ -436,6 +439,7 @@ class V2from3Adapter(MutableMapping):
                 data[target] = tmp
             data["chunk_grid"] = {}
             data["chunk_grid"]["chunk_shape"] = data["chunks"]
+            del data['chunks']
             data["chunk_grid"]["type"] = "rectangular"
             data["chunk_grid"]["separator"] = "/"
             assert data["zarr_format"] == 2
