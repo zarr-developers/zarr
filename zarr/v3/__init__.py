@@ -50,7 +50,7 @@ class BaseV3Store(AutoSync):
             and (not key.startswith("meta/"))
             and (not key == "zarr.json")
         ):
-            raise ValueError(f"keys starts with unexpected value: `{key}`")
+            raise ValueError("keys starts with unexpected value: `{}`".format(key))
         # todo likely more logics to add there.
         return True
 
@@ -369,7 +369,7 @@ class V2from3Adapter(MutableMapping):
         """
         In v2  both metadata and data are mixed so we'll need to convert things that ends with .z to the metadata path.
         """
-        assert isinstance(key, str), f"expecting string got {key!r}"
+        assert isinstance(key, str), "expecting string got {key}".format(key=repr(key))
         v3key = self._convert_2_to_3_keys(key)
         if key.endswith(".zattrs"):
             try:
@@ -424,7 +424,7 @@ class V2from3Adapter(MutableMapping):
                 try:
                     tmp = data[source]
                 except KeyError:
-                    raise KeyError(f"{source} not found in {value}")
+                    raise KeyError("{source} not found in {value}".format(source, value))
                 del data[source]
                 data[target] = tmp
             data["chunk_grid"] = {}
@@ -433,7 +433,7 @@ class V2from3Adapter(MutableMapping):
             data["chunk_grid"]["separator"] = "/"
             assert data["zarr_format"] == 2
             del data["zarr_format"]
-            assert data["filters"] in ([], None), f"found filters: {data['filters']}"
+            assert data["filters"] in ([], None), "found filters: {}".format(data['filters'])
             del data["filters"]
             data["extensions"] = []
             try:
@@ -507,7 +507,7 @@ class V2from3Adapter(MutableMapping):
             return "meta/root.array"
         assert not v2key.startswith(
             "/"
-        ), f"expect keys to not start with slash but does {v2key!r}"
+        ), "expect keys to not start with slash but does {}".format(repr(v2key))
         if v2key.endswith(".zarray") or v2key.endswith(".zattrs"):
             return "meta/root/" + v2key[:-7] + ".array"
         if v2key.endswith(".zgroup"):
@@ -527,7 +527,7 @@ class V2from3Adapter(MutableMapping):
 
         items = self._v3store.list_prefix(item3)
         if not items:
-            raise KeyError(f"{key} not found in store (converted key to {item3}")
+            raise KeyError("{} not found in store (converted key to {}".format(key, item3))
         for _item in self._v3store.list_prefix(item3):
             self._v3store.delete(_item)
 
