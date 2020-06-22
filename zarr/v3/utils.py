@@ -70,8 +70,8 @@ class AutoSync(metaclass=_Meta):
                             return trio.run(meth, self, *args)
 
                     sync_version.__doc__ = (
-                        f"Automatically generated sync"
-                        " version of {attr}.\n\n{meth.__doc__}"
+                        "Automatically generated sync"
+                         "version of {}.\n\n{}".format(attr, meth.__doc__)
                     )
                     return sync_version
 
