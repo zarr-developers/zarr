@@ -36,23 +36,23 @@ def nested_run():
 
 
 class _meta(type):
-     def __init__(cls, *args, **kwargs):
-         cls._sync = None
+    def __init__(cls, *args, **kwargs):
+        cls._sync = None
 
+    @property
+    def sync(cls):
+        if cls._sync:
+            return cls._sync
+        cls._sync = cls._syncify()
+        return cls._sync
 
-     @property
-     def sync(cls):
-         if cls._sync:
-             return cls._sync
-         cls._sync = cls._syncify()
-         return cls._sync
 
 class AutoSync(metaclass=_meta):
-   
     @classmethod
     def _syncify(cls, *args, **kwargs):
         class SyncSubclass(cls):
             pass
+
         attrs = [c for c in dir(cls) if c.startswith("async_")]
         for attr in attrs:
             meth = getattr(cls, attr)

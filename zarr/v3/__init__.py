@@ -75,17 +75,19 @@ class BaseV3Store(AutoSync):
             }, "v is {}".format(v)
         elif key.endswith("/.group"):
             v = json.loads(result.decode())
-            assert set(v.keys()) == {"attributes"}, "got unexpected keys {}".format(v.keys())
+            assert set(v.keys()) == {"attributes"}, "got unexpected keys {}".format(
+                v.keys()
+            )
         if key.endswith(".array"):
             try:
                 res = await self._get(key.replace(".array", ".group"))
-                assert False, f"expecting keyerror, got {res}"
+                assert False, "expecting keyerror, got {}".format(res)
             except KeyError:
                 pass
         if key.endswith(".group"):
             try:
                 res = await self._get(key.replace(".group", ".array"))
-                assert False, f"expecting keyerror, got {res}"
+                assert False, "expecting keyerror, got {}".format(res)
             except KeyError:
                 pass
         return result
@@ -105,7 +107,7 @@ class BaseV3Store(AutoSync):
                 "zarr_format",
                 "metadata_encoding",
                 "extensions",
-            }, f"v is {v}"
+            }, "v is {}".format(v)
         elif key.endswith(".array"):
             v = json.loads(value.decode())
             expected = {
@@ -126,11 +128,13 @@ class BaseV3Store(AutoSync):
 
             if key.endswith(".group"):
                 v = json.loads(value.decode())
-                assert set(v.keys()) == {
-                    "attributes"
-                }, f"got unexpected keys {v.keys()}"
+                assert set(v.keys()) == {"attributes"}, "got unexpected keys {}".format(
+                    v.keys()
+                )
         if not isinstance(value, bytes):
-            raise TypeError(f"expected, bytes, or bytesarray, got {type(value)}")
+            raise TypeError(
+                "expected, bytes, or bytesarray, got {}".format(type(value))
+            )
         assert self._valid_path(key)
         await self._set(key, value)
 
@@ -147,7 +151,6 @@ class BaseV3Store(AutoSync):
         pass
 
 
-
 class V3DirectoryStore(BaseV3Store):
     log = []
 
@@ -156,7 +159,7 @@ class V3DirectoryStore(BaseV3Store):
         self.root = Path(path)
 
     async def _get(self, key):
-        self.log.append(f"get {key}")
+        self.log.append("get" + key)
         path = self.root / key
         try:
             return path.read_bytes()
@@ -164,7 +167,7 @@ class V3DirectoryStore(BaseV3Store):
             raise KeyError(path)
 
     async def _set(self, key, value):
-        self.log.append(f"set {key} {value}")
+        self.log.append("set {} {}".format(key, value))
         path = self.root / key
         if not path.parent.exists():
             path.parent.mkdir(parents=True)
@@ -178,7 +181,7 @@ class V3DirectoryStore(BaseV3Store):
         return l
 
     async def async_delete(self, key):
-        self.log.append(f"delete {key}")
+        self.log.append("delete {}".format(key))
         path = self.root / key
         os.remove(path)
 
@@ -253,7 +256,7 @@ class MemoryStoreV3(BaseV3Store):
 class ZarrProtocolV3(AutoSync):
     def __init__(self, store):
         self._store = store()
-        if hasattr(self, 'init_hierarchy'):
+        if hasattr(self, "init_hierarchy"):
             self.init_hierarchy()
 
     async def async_init_hierarchy(self):
@@ -424,7 +427,9 @@ class V2from3Adapter(MutableMapping):
                 try:
                     tmp = data[source]
                 except KeyError:
-                    raise KeyError("{source} not found in {value}".format(source, value))
+                    raise KeyError(
+                        "{source} not found in {value}".format(source, value)
+                    )
                 del data[source]
                 data[target] = tmp
             data["chunk_grid"] = {}
@@ -433,7 +438,9 @@ class V2from3Adapter(MutableMapping):
             data["chunk_grid"]["separator"] = "/"
             assert data["zarr_format"] == 2
             del data["zarr_format"]
-            assert data["filters"] in ([], None), "found filters: {}".format(data['filters'])
+            assert data["filters"] in ([], None), "found filters: {}".format(
+                data["filters"]
+            )
             del data["filters"]
             data["extensions"] = []
             try:
@@ -527,7 +534,9 @@ class V2from3Adapter(MutableMapping):
 
         items = self._v3store.list_prefix(item3)
         if not items:
-            raise KeyError("{} not found in store (converted key to {}".format(key, item3))
+            raise KeyError(
+                "{} not found in store (converted key to {}".format(key, item3)
+            )
         for _item in self._v3store.list_prefix(item3):
             self._v3store.delete(_item)
 
