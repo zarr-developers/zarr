@@ -966,6 +966,10 @@ class TestGroupWithV3RedisStore(TestGroup):
         rs.initialize()
         return StoreComparer(MemoryStore(), V2from3Adapter(rs)), None
 
+    def test_pickle(self):
+        "Can't pickle because of the Sync Magics"
+        pass
+
 
 class TestGroupWithMemoryStore(TestGroup):
 

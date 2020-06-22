@@ -65,17 +65,17 @@ class BaseV3Store(AutoSync):
         """
         assert self._valid_path(key)
         result = await self._get(key)
-        assert isinstance(result, bytes), f"Expected bytes, got {result}"
+        assert isinstance(result, bytes), "Expected bytes, got {}".format(result)
         if key == "zarr.json":
             v = json.loads(result.decode())
             assert set(v.keys()) == {
                 "zarr_format",
                 "metadata_encoding",
                 "extensions",
-            }, f"v is {v}"
+            }, "v is {}".format(v)
         elif key.endswith("/.group"):
             v = json.loads(result.decode())
-            assert set(v.keys()) == {"attributes"}, f"got unexpected keys {v.keys()}"
+            assert set(v.keys()) == {"attributes"}, "got unexpected keys {}".format(v.keys())
         if key.endswith(".array"):
             try:
                 res = await self._get(key.replace(".array", ".group"))
