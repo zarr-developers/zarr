@@ -25,7 +25,7 @@ class StoreComparer(MutableMapping):
         except Exception as e1:
             try:
                 k2 = self.tested[key]
-                assert False, f"should raise, got {k2} for {key}"
+                assert False, "should raise, got {} for {}".format(k2, key)
             except Exception as e2:
                 raise
                 if not isinstance(e2, type(e1)):
@@ -34,9 +34,9 @@ class StoreComparer(MutableMapping):
         k2 = self.tested[key]
         if key.endswith((".zgroup", ".zarray")):
             j1, j2 = json.loads(k1.decode()), json.loads(k2.decode())
-            assert j1 == j2, f"{j1} != {j2}"
+            assert j1 == j2, "{} != {}".format(j1, j2)
         else:
-            assert k2 == k1, f"{k1} != {k2}"
+            assert k2 == k1, "{} != {}".format(k1, k2)
         return k1
 
     def __setitem__(self, key, value):
@@ -55,7 +55,7 @@ class StoreComparer(MutableMapping):
             self.tested[key] = value
         except Exception as e:
             raise
-            assert False, f"should not raise, got {e}"
+            assert False, "should not raise, got {}".format(e)
 
     def keys(self):
         try:
@@ -68,7 +68,7 @@ class StoreComparer(MutableMapping):
                 assert isinstance(e2, type(e1))
             raise
         k2 = sorted(self.tested.keys())
-        assert k2 == k1, f"got {k2}, expecting {k1}"
+        assert k2 == k1, "got {}, expecting {}".format(k2, k1)
         return k1
 
     def __delitem__(self, key):

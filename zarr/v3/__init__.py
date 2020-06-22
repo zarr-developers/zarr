@@ -129,7 +129,8 @@ class BaseV3Store(AutoSync):
             # ets do some conversions.
             assert (
                 current == expected
-            ), f"{current - expected} extra, {expected- current} missing in {v}"
+            ), "{} extra, {} missing in {}"\
+                    .format(current - expected, expected - curent, v)
 
             if key.endswith(".group"):
                 v = json.loads(value.decode())
