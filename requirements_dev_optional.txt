@@ -20,6 +20,6 @@ pytest-remotedata==0.3.2
 h5py==2.10.0
 s3fs==0.3.4; python_version > '3.0'
 # all async features in v3
-pytest-trio
-trio
-redio
+pytest-trio ; python_version >= '3.6'
+trio ; python_version >= '3.6'
+redio ; python_version >= '3.6'
