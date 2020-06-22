@@ -71,7 +71,7 @@ class AutoSync(metaclass=_Meta):
 
                     sync_version.__doc__ = (
                         "Automatically generated sync"
-                         "version of {}.\n\n{}".format(attr, meth.__doc__)
+                        "version of {}.\n\n{}".format(attr, meth.__doc__)
                     )
                     return sync_version
 
