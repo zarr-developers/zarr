@@ -198,12 +198,12 @@ class RedisV3Store(BaseV3Store):
         self.__init__()
         from redio import Redis
 
-        self._backend = Redis("redis://localhost/", port=6379)
+        self._backend = Redis("redis://localhost/")
 
     async def async_initialize(self):
         from redio import Redis
 
-        self._backend = Redis("redis://localhost/", port=6379)
+        self._backend = Redis("redis://localhost/")
         b = self._backend()
         for k in await self._backend().keys():
             b.delete(k)
