@@ -5,6 +5,7 @@ from zarr.v3 import MemoryStoreV3, RedisV3Store, V2from3Adapter, ZarrProtocolV3
 
 
 async def test_scenario():
+    pytest.importorskip('trio')
 
     store = MemoryStoreV3.sync()
 
@@ -41,6 +42,8 @@ async def test_2():
 
 @pytest.mark.parametrize("klass", [MemoryStoreV3, RedisV3Store])
 def test_misc(klass):
+
+    pytest.importorskip('redio')
 
     _store = klass.sync()
     _store.initialize()

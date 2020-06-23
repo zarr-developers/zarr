@@ -930,7 +930,7 @@ class TestGroup(unittest.TestCase):
             d = g.create_dataset('foo/bar', shape=100, chunks=10)
             d[:] = np.arange(100)
 
-
+@pytest.mark.skipif(sys.version_info < (3,6), reason="requires trio")
 class TestGroupWithV3MemoryStore(TestGroup):
 
     @staticmethod
@@ -943,6 +943,7 @@ class TestGroupWithV3MemoryStore(TestGroup):
         pass
 
 
+@pytest.mark.skipif(sys.version_info < (3,6), reason="requires trio")
 class TestGroupWithV3DirectoryStore(TestGroup):
 
     @staticmethod
@@ -957,6 +958,7 @@ class TestGroupWithV3DirectoryStore(TestGroup):
         pass
 
 
+@pytest.mark.skipif(sys.version_info < (3,6), reason="requires trio")
 class TestGroupWithV3RedisStore(TestGroup):
 
     @staticmethod
