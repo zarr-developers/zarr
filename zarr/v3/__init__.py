@@ -6,6 +6,7 @@ __version__ = "0.0.1"
 
 import json
 import os
+import sys
 from collections.abc import MutableMapping
 from pathlib import Path
 from string import ascii_letters, digits
@@ -44,8 +45,9 @@ class BaseV3Store(AutoSync):
         user, and is a store implmentation detail, so thie method will raise
         a ValueError in that case.
         """
-        if not key.isascii():
-            return False
+        if sys.version_info > (3, 7):
+            if not key.isascii():
+                return False
         if set(key) - set(ascii_letters + digits + "/.-_"):
             return False
 
