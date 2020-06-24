@@ -3,6 +3,7 @@ import array
 import atexit
 import json
 import os
+import sys
 import pickle
 import shutil
 import tempfile
@@ -745,6 +746,7 @@ def setdel_hierarchy_checks(store):
     assert 'r/s' not in store
 
 
+@pytest.mark.skip(sys.version_info < (3,6), 'needs trio')
 class TestV3Adapter(StoreTests, unittest.TestCase):
 
     def create_store(self):
