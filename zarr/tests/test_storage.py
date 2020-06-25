@@ -750,8 +750,9 @@ def setdel_hierarchy_checks(store):
 class TestV3Adapter(StoreTests, unittest.TestCase):
 
     def create_store(self):
-        from zarr.v3 import V2from3Adapter, MemoryStoreV3, StoreComparer
-        self._store = StoreComparer(MemoryStore(), V2from3Adapter(MemoryStoreV3.sync()))
+        from zarr.v3 import V2from3Adapter, SyncV3MemoryStore, StoreComparer
+
+        self._store = StoreComparer(MemoryStore(), V2from3Adapter(SyncV3MemoryStore()))
         return self._store
 
     def test_store_contains_bytes(self):
@@ -762,10 +763,6 @@ class TestV3Adapter(StoreTests, unittest.TestCase):
     def test_clear(self):
         super().test_clear()
         assert self._store.tested._v3store._backend == {}
-
-    def test_pickle(self):
-        "Can't pickle because of the Sync Magics"
-        pass
 
 
 class TestMemoryStore(StoreTests, unittest.TestCase):

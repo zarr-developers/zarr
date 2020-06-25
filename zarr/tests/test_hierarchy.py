@@ -936,12 +936,9 @@ class TestGroupWithV3MemoryStore(TestGroup):
 
     @staticmethod
     def create_store():
-        from zarr.v3 import V2from3Adapter, MemoryStoreV3, StoreComparer
-        return StoreComparer(MemoryStore(), V2from3Adapter(MemoryStoreV3.sync())), None
+        from zarr.v3 import V2from3Adapter, SyncV3MemoryStore, StoreComparer
 
-    def test_pickle(self):
-        "Can't pickle because of the Sync Magics"
-        pass
+        return StoreComparer(MemoryStore(), V2from3Adapter(SyncV3MemoryStore())), None
 
 
 @pytest.mark.skipif(sys.version_info < (3, 6), reason="requires trio")
@@ -951,12 +948,12 @@ class TestGroupWithV3DirectoryStore(TestGroup):
     def create_store():
         path = tempfile.mkdtemp()
         atexit.register(atexit_rmtree, path)
-        from zarr.v3 import V2from3Adapter, StoreComparer, V3DirectoryStore
-        return StoreComparer(MemoryStore(), V2from3Adapter(V3DirectoryStore.sync(path))), None
+        from zarr.v3 import V2from3Adapter, StoreComparer, SyncV3DirectoryStore
 
-    def test_pickle(self):
-        "Can't pickle because of the Sync Magics"
-        pass
+        return (
+            StoreComparer(MemoryStore(), V2from3Adapter(SyncV3DirectoryStore(path))),
+            None,
+        )
 
 
 @pytest.mark.skipif(sys.version_info < (3, 6), reason="requires trio")
@@ -965,14 +962,11 @@ class TestGroupWithV3RedisStore(TestGroup):
     @staticmethod
     def create_store():
         pytest.importorskip('redio')
-        from zarr.v3 import V2from3Adapter, RedisV3Store, StoreComparer
-        rs = RedisV3Store.sync()
+        from zarr.v3 import V2from3Adapter, SyncV3RedisStore, StoreComparer
+
+        rs = SyncV3RedisStore()
         rs.initialize()
         return StoreComparer(MemoryStore(), V2from3Adapter(rs)), None
-
-    def test_pickle(self):
-        "Can't pickle because of the Sync Magics"
-        pass
 
 
 class TestGroupWithMemoryStore(TestGroup):

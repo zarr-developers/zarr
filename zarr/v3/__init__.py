@@ -12,7 +12,7 @@ from pathlib import Path
 from string import ascii_letters, digits
 from numcodecs.compat import ensure_bytes
 
-from .utils import AutoSync
+from .utils import syncify
 
 # flake8: noqa
 from .comparer import StoreComparer
@@ -23,7 +23,7 @@ RENAMED_MAP = {
 }
 
 
-class BaseV3Store(AutoSync):
+class BaseV3Store:
     """
     Base utility class to create a v3-complient store with extra checks and utilities.
 
@@ -159,7 +159,7 @@ class BaseV3Store(AutoSync):
         pass
 
 
-class V3DirectoryStore(BaseV3Store):
+class AsyncV3DirectoryStore(BaseV3Store):
     log = []
 
     def __init__(self, path):
@@ -193,8 +193,12 @@ class V3DirectoryStore(BaseV3Store):
         path = self.root / key
         os.remove(path)
 
+@syncify
+class SyncV3DirectoryStore(AsyncV3DirectoryStore):
+    pass
 
-class RedisV3Store(BaseV3Store):
+
+class AsyncV3RedisStore(BaseV3Store):
     def __init__(self, host=None, port=None):
         """initialisation is in _async initialize
         for early failure.
@@ -234,7 +238,12 @@ class RedisV3Store(BaseV3Store):
         return await self._backend().keys()
 
 
-class MemoryStoreV3(BaseV3Store):
+@syncify
+class SyncV3RedisStore(AsyncV3RedisStore):
+    pass
+
+
+class AsyncV3MemoryStore(BaseV3Store):
     def __init__(self):
         self._backend = dict()
 
@@ -261,7 +270,12 @@ class MemoryStoreV3(BaseV3Store):
         return [prefix + k for k in trail]
 
 
-class ZarrProtocolV3(AutoSync):
+@syncify
+class SyncV3MemoryStore(AsyncV3MemoryStore):
+    pass
+
+
+class AsyncZarrProtocolV3:
     def __init__(self, store):
         self._store = store()
         if hasattr(self, "init_hierarchy"):
@@ -345,6 +359,11 @@ class ZarrProtocolV3(AutoSync):
         }  }
         """
         await self._store.set(self._g_meta_key(array_path), DEFAULT_ARRAY.encode())
+
+
+@syncify
+class ZarrProtocolV3(AsyncZarrProtocolV3):
+    pass
 
 
 class V2from3Adapter(MutableMapping):

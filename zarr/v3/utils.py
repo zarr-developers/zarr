@@ -34,47 +34,35 @@ def nested_run():
             GLOBAL_RUN_CONTEXT.__dict__.update(_dict)
 
 
-class _Meta(type):
-    def __init__(cls, *args, **kwargs):
-        cls._sync = None
+def syncify(cls, *args, **kwargs):
 
-    @property
-    def sync(cls):
-        if cls._sync:
-            return cls._sync
-        cls._sync = cls._syncify()
-        return cls._sync
+    attrs = [c for c in dir(cls) if c.startswith("async_")]
+    for attr in attrs:
+        meth = getattr(cls, attr)
+        if inspect.iscoroutinefunction(meth):
 
+            def cl(meth):
+                def sync_version(self, *args, **kwargs):
+                    """
+                    Automatically generated synchronous  version of {attr}
 
-class AutoSync(metaclass=_Meta):
-    @classmethod
-    def _syncify(cls, *args, **kwargs):
-        class SyncSubclass(cls):
-            pass
+                    See {attr} documentation.
+                    """
+                    import trio
 
-        attrs = [c for c in dir(cls) if c.startswith("async_")]
-        for attr in attrs:
-            meth = getattr(cls, attr)
-            if inspect.iscoroutinefunction(meth):
+                    with nested_run():
+                        return trio.run(meth, self, *args)
 
-                def cl(meth):
-                    def sync_version(self, *args, **kwargs):
-                        """
-                        Automatically generated synchronous  version of {attr}
+                sync_version.__doc__ = (
+                    "Automatically generated sync"
+                    "version of {}.\n\n{}".format(attr, meth.__doc__)
+                )
+                return sync_version
 
-                        See {attr} documentation.
-                        """
-                        import trio
+            import types
 
-                        with nested_run():
-                            return trio.run(meth, self, *args)
+            types.MethodType
 
-                    sync_version.__doc__ = (
-                        "Automatically generated sync"
-                        "version of {}.\n\n{}".format(attr, meth.__doc__)
-                    )
-                    return sync_version
+            setattr(cls, attr[6:], cl(meth))
 
-                setattr(SyncSubclass, attr[6:], cl(meth))
-
-        return SyncSubclass
+    return cls

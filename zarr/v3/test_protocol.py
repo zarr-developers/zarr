@@ -1,13 +1,13 @@
 import pytest
 
 from zarr.storage import init_group
-from zarr.v3 import MemoryStoreV3, RedisV3Store, V2from3Adapter, ZarrProtocolV3
+from zarr.v3 import SyncV3MemoryStore, SyncV3RedisStore, V2from3Adapter, ZarrProtocolV3
 
 
 async def test_scenario():
     pytest.importorskip('trio')
 
-    store = MemoryStoreV3.sync()
+    store = SyncV3MemoryStore()
 
     await store.async_set("data/a", bytes(1))
 
@@ -33,25 +33,25 @@ async def test_scenario():
 
 
 async def test_2():
-    protocol = ZarrProtocolV3(MemoryStoreV3)
+    protocol = ZarrProtocolV3(SyncV3MemoryStore)
     store = protocol._store
 
     await protocol.async_create_group("g1")
     assert isinstance(await store.async_get("meta/g1.group"), bytes)
 
 
-@pytest.mark.parametrize("klass", [MemoryStoreV3, RedisV3Store])
+@pytest.mark.parametrize("klass", [SyncV3MemoryStore, SyncV3RedisStore])
 def test_misc(klass):
 
     pytest.importorskip('redio')
 
-    _store = klass.sync()
+    _store = klass()
     _store.initialize()
     store = V2from3Adapter(_store)
 
     init_group(store)
 
-    if isinstance(_store, MemoryStoreV3):
+    if isinstance(_store, SyncV3MemoryStore):
         assert store._v3store._backend == {
             "meta/root.group": b'{\n    "zarr_format": '
             b'"https://purl.org/zarr/spec/protocol/core/3.0"\n}'
