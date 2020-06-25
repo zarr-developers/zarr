@@ -172,6 +172,13 @@ class BaseV3Store:
         trail = {k[len_prefix:].split("/", maxsplit=1)[0] for k in all_keys}
         return [prefix + k for k in trail]
 
+    async def async_contains(self, key):
+        return key in self.list()
+
+    def __contains__(self, key):
+        return self.contains(key)
+
+
 
 
 class AsyncV3DirectoryStore(BaseV3Store):
@@ -522,6 +529,7 @@ class V2from3Adapter(MutableMapping):
         self._v3store.set(v3key, ensure_bytes(data))
 
     def __contains__(self, key):
+        assert key.startswith(('meta/', 'data/'))
         return self._convert_2_to_3_keys(key) in self._v3store.list()
 
     def _convert_3_to_2_keys(self, v3key: str) -> str:
