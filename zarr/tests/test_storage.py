@@ -746,7 +746,7 @@ def setdel_hierarchy_checks(store):
     assert 'r/s' not in store
 
 
-@pytest.mark.skipif(sys.version_info < (3,6), reason='needs trio')
+@pytest.mark.skipif(sys.version_info < (3, 6), reason='needs trio')
 class TestV3Adapter(StoreTests, unittest.TestCase):
 
     def create_store(self):
