@@ -30,6 +30,7 @@ from zarr.storage import (ABSStore, DBMStore, DirectoryStore, LMDBStore,
                           init_group)
 from zarr.util import InfoReporter
 from zarr.tests.util import skip_test_env_var
+from zarr import v3
 
 
 class AsyncTest(unittest.TestCase):
@@ -54,8 +55,8 @@ class AsyncTestRedis(AsyncTest):
         # can be overridden in sub-classes
         if store is None:
             store, chunk_store = await self.create_store()
+        await v3.storage.init_group(store, path=path, chunk_store=chunk_store)
         raise NotImplementedError
-        init_group(store, path=path, chunk_store=chunk_store)
         g = Group(store, path=path, read_only=read_only,
                   chunk_store=chunk_store, synchronizer=synchronizer)
         return g

@@ -13,6 +13,7 @@ from string import ascii_letters, digits
 from numcodecs.compat import ensure_bytes
 
 from .utils import syncify
+from . import storage
 
 # flake8: noqa
 from .comparer import StoreComparer
@@ -30,6 +31,9 @@ class BaseV3Store:
     It provides a number of default method implementation adding extra checks in
     order to ensure the correctness fo the implmentation.
     """
+
+    _store_version = 3
+    _async = True
 
     @staticmethod
     def _valid_path(key: str) -> bool:
@@ -158,6 +162,17 @@ class BaseV3Store:
     async def async_initialize(self):
         pass
 
+    async def async_list_dir(self, prefix):
+        """
+        Note: carefully test this with trailing/leading slashes
+        """
+
+        all_keys = await self.async_list_prefix(prefix)
+        len_prefix = len(prefix)
+        trail = {k[len_prefix:].split("/", maxsplit=1)[0] for k in all_keys}
+        return [prefix + k for k in trail]
+
+
 
 class AsyncV3DirectoryStore(BaseV3Store):
     log = []
@@ -195,7 +210,7 @@ class AsyncV3DirectoryStore(BaseV3Store):
 
 @syncify
 class SyncV3DirectoryStore(AsyncV3DirectoryStore):
-    pass
+    _async = False
 
 
 class AsyncV3RedisStore(BaseV3Store):
@@ -240,7 +255,7 @@ class AsyncV3RedisStore(BaseV3Store):
 
 @syncify
 class SyncV3RedisStore(AsyncV3RedisStore):
-    pass
+    _async = False
 
 
 class AsyncV3MemoryStore(BaseV3Store):
@@ -259,25 +274,19 @@ class AsyncV3MemoryStore(BaseV3Store):
     async def async_list(self):
         return list(self._backend.keys())
 
-    async def async_list_dir(self, prefix):
-        """
-        Note: carefully test this with trailing/leading slashes
-        """
-
-        all_keys = await self.async_list_prefix(prefix)
-        len_prefix = len(prefix)
-        trail = {k[len_prefix:].split("/", maxsplit=1)[0] for k in all_keys}
-        return [prefix + k for k in trail]
 
 
 @syncify
 class SyncV3MemoryStore(AsyncV3MemoryStore):
-    pass
+    _async = False
 
 
 class AsyncZarrProtocolV3:
     def __init__(self, store):
-        self._store = store()
+        if isinstance(store, type):
+            self._store = store()
+        else:
+            self._store = store
         if hasattr(self, "init_hierarchy"):
             self.init_hierarchy()
 
@@ -297,6 +306,9 @@ class AsyncZarrProtocolV3:
 
     def _a_meta_key(self, key):
         return "meta/" + key + ".array"
+
+    async def get_group(self, path: str):
+        pass
 
     async def async_create_group(self, group_path: str):
         """
@@ -370,6 +382,7 @@ class V2from3Adapter(MutableMapping):
     """
     class to wrap a 3 store and return a V2 interface
     """
+    _store_version = 2
 
     def __init__(self, v3store):
         """
