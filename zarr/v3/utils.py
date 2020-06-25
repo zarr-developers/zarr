@@ -66,3 +66,4 @@ def syncify(cls, *args, **kwargs):
             setattr(cls, attr[6:], cl(meth))
 
     return cls
+

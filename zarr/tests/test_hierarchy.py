@@ -32,6 +32,57 @@ from zarr.util import InfoReporter
 from zarr.tests.util import skip_test_env_var
 
 
+class AsyncTest(unittest.TestCase):
+
+    async def create_store(self):
+        raise NotImplementedError()
+
+class AsyncTestRedis(AsyncTest):
+
+    async def test_I(self):
+        assert True
+
+    async def create_store(self):
+        pytest.importorskip('redio')
+        from zarr.v3 import V2from3Adapter, AsyncV3RedisStore
+        rs = AsyncV3RedisStore()
+        await rs.async_initialize()
+        return rs, None
+
+    async def create_group(self, store=None, path=None, read_only=False,
+                     chunk_store=None, synchronizer=None):
+        # can be overridden in sub-classes
+        if store is None:
+            store, chunk_store = await self.create_store()
+        raise NotImplementedError
+        init_group(store, path=path, chunk_store=chunk_store)
+        g = Group(store, path=path, read_only=read_only,
+                  chunk_store=chunk_store, synchronizer=synchronizer)
+        return g
+
+    async def test_group_init_1(self):
+        store, chunk_store = await self.create_store()
+        g = await self.create_group(store, chunk_store=chunk_store)
+        assert store is g.store
+        if chunk_store is None:
+            assert store is g.chunk_store
+        else:
+            assert chunk_store is g.chunk_store
+        assert not g.read_only
+        assert '' == g.path
+        assert '/' == g.name
+        assert '' == g.basename
+        assert isinstance(g.attrs, Attributes)
+        g.attrs['foo'] = 'bar'
+        assert g.attrs['foo'] == 'bar'
+        assert isinstance(g.info, InfoReporter)
+        assert isinstance(repr(g.info), str)
+        assert isinstance(g.info._repr_html_(), str)
+        if hasattr(store, 'close'):
+            store.close()
+
+
+
 # noinspection PyStatementEffect
 class TestGroup(unittest.TestCase):
 
