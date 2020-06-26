@@ -84,11 +84,18 @@ def _path_to_prefix(path):
     return prefix
 
 
+
 def contains_array(store, path=None):
     """Return True if the store contains an array at the given logical path."""
     path = normalize_storage_path(path)
     prefix = _path_to_prefix(path)
-    key = prefix + array_meta_key
+    if getattr(store, '_store_version', 2) == 3:
+        if prefix:
+            key = 'meta/root/'+prefix + '.array'
+        else:
+            key = 'meta/root.array'
+    else:
+        key = prefix + array_meta_key
     return key in store
 
 
@@ -97,6 +104,13 @@ def contains_group(store, path=None):
     path = normalize_storage_path(path)
     prefix = _path_to_prefix(path)
     key = prefix + group_meta_key
+    if getattr(store, '_store_version', 2) == 3:
+        if prefix:
+            key = 'meta/root/'+prefix + '.group'
+        else:
+            key = 'meta/root.array'
+    else:
+        key = prefix + group_meta_key
     return key in store
 
 

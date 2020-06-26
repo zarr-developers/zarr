@@ -109,8 +109,16 @@ class Group(MutableMapping):
 
         # initialize metadata
         try:
-            mkey = self._key_prefix + group_meta_key
-            meta_bytes = store[mkey]
+            if getattr(store, '_store_version', 2) == 3:
+                if self._key_prefix:
+                    mkey = 'meta/root/'+self._key_prefix + '.group'
+                else:
+                    mkey = 'meta/root.group'
+                meta_bytes = store.get(mkey)
+            else:
+                mkey = self._key_prefix + group_meta_key
+                meta_bytes = store[mkey]
+
         except KeyError:
             err_group_not_found(path)
         else:
