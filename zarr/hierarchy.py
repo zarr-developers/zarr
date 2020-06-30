@@ -11,7 +11,7 @@ from zarr.creation import (array, create, empty, empty_like, full, full_like,
                            zeros_like)
 from zarr.errors import (err_contains_array, err_contains_group,
                          err_group_not_found, err_read_only)
-from zarr.meta import decode_group_metadata
+from zarr.meta import decode_group_metadata, decode_group_metadata_v3
 from zarr.storage import (MemoryStore, attrs_key, contains_array,
                           contains_group, group_meta_key, init_group, listdir,
                           rename, rmdir)
@@ -107,9 +107,11 @@ class Group(MutableMapping):
         if contains_array(store, path=self._path):
             err_contains_array(path)
 
+        self._version = getattr(store, '_store_version', 2)
+
         # initialize metadata
         try:
-            if getattr(store, '_store_version', 2) == 3:
+            if self._version == 3:
                 if self._key_prefix:
                     mkey = 'meta/root/'+self._key_prefix + '.group'
                 else:
@@ -122,7 +124,11 @@ class Group(MutableMapping):
         except KeyError:
             err_group_not_found(path)
         else:
-            meta = decode_group_metadata(meta_bytes)
+            if self._version == 3:
+                self._meta = decode_group_metadata_v3(meta_bytes)
+            elif self._version == 2:
+                self._meta = decode_group_metadata(meta_bytes)
+
             self._meta = meta
 
         # setup attributes

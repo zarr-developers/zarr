@@ -108,7 +108,7 @@ def contains_group(store, path=None):
         if prefix:
             key = 'meta/root/'+prefix + '.group'
         else:
-            key = 'meta/root.array'
+            key = 'meta/root.group'
     else:
         key = prefix + group_meta_key
     return key in store
