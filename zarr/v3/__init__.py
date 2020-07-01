@@ -220,6 +220,9 @@ class AsyncV3DirectoryStore(BaseV3Store):
 class SyncV3DirectoryStore(AsyncV3DirectoryStore):
     _async = False
 
+    def __getitem__(self, key):
+        return self.get(key)
+
 
 class AsyncV3RedisStore(BaseV3Store):
     def __init__(self, host=None, port=None):

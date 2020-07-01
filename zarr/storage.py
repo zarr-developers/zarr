@@ -176,6 +176,9 @@ def listdir(store, path=None):
     method, this will be called, otherwise will fall back to implementation via the
     `MutableMapping` interface."""
     path = normalize_storage_path(path)
+    if getattr(store, '_store_version', None) == 3:
+        return store.list_dir(path)
+
     if hasattr(store, 'listdir'):
         # pass through
         return store.listdir(path)

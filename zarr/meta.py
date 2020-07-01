@@ -93,7 +93,6 @@ def _decode_dtype_descr(d):
 def decode_dtype(d):
     d = _decode_dtype_descr(d)
     return np.dtype(d)
-i
 
 def decode_group_metadata_v3(s):
     return json.loads(s)

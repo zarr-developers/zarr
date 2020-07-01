@@ -129,8 +129,6 @@ class Group(MutableMapping):
             elif self._version == 2:
                 self._meta = decode_group_metadata(meta_bytes)
 
-            self._meta = meta
-
         # setup attributes
         akey = self._key_prefix + attrs_key
         self._attrs = Attributes(store, key=akey, read_only=read_only,
