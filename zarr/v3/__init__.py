@@ -308,7 +308,7 @@ class AsyncZarrProtocolV3:
     async def async_init_hierarchy(self):
         basic_info = {
             "zarr_format": "https://purl.org/zarr/spec/protocol/core/3.0",
-            "metadata_encoding": "application/json",
+            "metadata_encoding": "https://purl.org/zarr/spec/metadata/json/3.0",
             "extensions": [],
         }
         try:
