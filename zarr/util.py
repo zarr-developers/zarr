@@ -11,6 +11,8 @@ from asciitree.traversal import Traversal
 from numcodecs.compat import ensure_ndarray, ensure_text
 from numcodecs.registry import codec_registry
 
+_strict = False
+
 # codecs to use for object dtype convenience API
 object_codecs = {
     str.__name__: 'vlen-utf8',
@@ -27,6 +29,8 @@ def json_dumps(o):
 
 def json_loads(s):
     """Read JSON in a consistent way."""
+    if _strict:
+        assert isinstance(s, str)
     return json.loads(ensure_text(s, 'ascii'))
 
 

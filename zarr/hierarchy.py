@@ -116,6 +116,7 @@ class Group(MutableMapping):
                     mkey = 'meta/root/'+self._key_prefix + '.group'
                 else:
                     mkey = 'meta/root.group'
+                assert not mkey.endswith('root/.group')
                 meta_bytes = store.get(mkey)
             else:
                 mkey = self._key_prefix + group_meta_key
@@ -130,7 +131,10 @@ class Group(MutableMapping):
                 self._meta = decode_group_metadata(meta_bytes)
 
         # setup attributes
-        akey = self._key_prefix + attrs_key
+        if self._version == 2:
+            akey = self._key_prefix + attrs_key
+        else:
+            akey = mkey
         self._attrs = Attributes(store, key=akey, read_only=read_only,
                                  cache=cache_attrs, synchronizer=synchronizer)
 

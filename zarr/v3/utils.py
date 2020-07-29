@@ -4,6 +4,7 @@ from contextlib import contextmanager
 
 @contextmanager
 def nested_run():
+    __tracebackhide__ = True
     from trio._core._run import GLOBAL_RUN_CONTEXT
 
     s = object()
@@ -49,6 +50,7 @@ def syncify(cls, *args, **kwargs):
                     See {attr} documentation.
                     """
                     import trio
+                    __tracebackhide__ = True
 
                     with nested_run():
                         return trio.run(meth, self, *args)

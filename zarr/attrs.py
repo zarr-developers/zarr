@@ -2,7 +2,7 @@
 from collections.abc import MutableMapping
 
 from zarr.meta import parse_metadata
-from zarr.util import json_dumps
+from zarr.util import json_dumps, json_loads
 
 
 class Attributes(MutableMapping):
@@ -27,6 +27,19 @@ class Attributes(MutableMapping):
 
     def __init__(self, store, key='.zattrs', read_only=False, cache=True,
                  synchronizer=None):
+
+        assert not key.endswith('root/.group')
+        self._version = getattr(store, '_store_version', 2)
+        if not key:
+            if self._version == 2:
+                key = '.zattr'
+            elif self._version == 3:
+                raise ValueError('a key must be passed in V3')
+            
+        if self._version == 3 and '.z' in key:
+            raise ValueError('nop, this is v3')
+
+        
         self.store = store
         self.key = key
         self.read_only = read_only
@@ -40,7 +53,12 @@ class Attributes(MutableMapping):
         except KeyError:
             d = dict()
         else:
-            d = parse_metadata(data)
+            if self._version == 3:
+                assert isinstance(data, bytes)
+                d = json_loads(data)['attributes']
+            else:
+                d = parse_metadata(data)
+        assert isinstance(d, dict)
         return d
 
     def asdict(self):
@@ -110,6 +128,8 @@ class Attributes(MutableMapping):
         self._write_op(self._put_nosync, d)
 
     def _put_nosync(self, d):
+        if self._version == 3:
+            d = {'attributes': d}
         self.store[self.key] = json_dumps(d)
         if self.cache:
             self._cached_asdict = d

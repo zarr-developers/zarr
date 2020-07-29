@@ -199,6 +199,8 @@ class AsyncV3DirectoryStore(BaseV3Store):
 
     async def _set(self, key, value):
         self.log.append("set {} {}".format(key, value))
+        assert not key.endswith('root/.group')
+        assert value
         path = self.root / key
         if not path.parent.exists():
             path.parent.mkdir(parents=True)
@@ -221,6 +223,8 @@ class SyncV3DirectoryStore(AsyncV3DirectoryStore):
     _async = False
 
     def __getitem__(self, key):
+        assert not key.endswith('root/.group')
+        print('asking for', key)
         return self.get(key)
 
 
@@ -470,6 +474,7 @@ class V2from3Adapter(MutableMapping):
         # TODO convert to bytes if needed
 
         v3key = self._convert_2_to_3_keys(key)
+        assert not key.endswith('root/.group')
         # convert chunk separator from ``.`` to ``/``
 
         if key.endswith(".zarray"):
@@ -560,7 +565,7 @@ class V2from3Adapter(MutableMapping):
 
         """
         # head of the hierachy is different:
-        if v2key == ".zgroup":
+        if v2key in (".zgroup", ".zattrs") :
             return "meta/root.group"
         if v2key == ".zarray":
             return "meta/root.array"

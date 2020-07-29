@@ -111,6 +111,7 @@ class Array(object):
         self._store = store
         self._chunk_store = chunk_store
         self._path = normalize_storage_path(path)
+        self._version = getattr(store, '_store_version', 2)
         if self._path:
             self._key_prefix = self._path + '/'
         else:
