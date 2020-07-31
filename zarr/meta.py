@@ -10,6 +10,7 @@ from zarr.util import json_dumps, json_loads
 import zarr.util
 
 ZARR_FORMAT = 2
+ZARR_FORMAT_v3 = '3'
 
 
 def parse_metadata(s):
@@ -30,6 +31,28 @@ def parse_metadata(s):
 
     return meta
 
+
+
+def decode_array_metadata_v3(s):
+    meta = parse_metadata(s)
+
+    # check metadata format
+    # extract array metadata fields
+    try:
+        dtype = decode_dtype(meta['data_type'])
+        fill_value = decode_fill_value(meta['fill_value'], dtype)
+        meta = dict(
+            shape=tuple(meta['shape']),
+            chunk_grid=tuple(meta['chunk_grid']['chunk_shape']),
+            data_type=dtype,
+            compressor=meta['compressor'],
+            fill_value=fill_value,
+            chunk_memory_layout=meta['chunk_memory_layout'],
+        )
+    except Exception as e:
+        raise MetadataError('error decoding metadata: %s' % e)
+    else:
+        return meta
 
 def decode_array_metadata(s):
     meta = parse_metadata(s)

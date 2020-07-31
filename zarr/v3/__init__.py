@@ -166,10 +166,17 @@ class BaseV3Store:
         """
         Note: carefully test this with trailing/leading slashes
         """
+        assert prefix.endswith('/')
 
+        def part1(key):
+            if '/' not in key:
+                return key
+            else:
+                return key.split('/', maxsplit=1)[0]+'/'
+        print('async list', repr(prefix))
         all_keys = await self.async_list_prefix(prefix)
         len_prefix = len(prefix)
-        trail = {k[len_prefix:].split("/", maxsplit=1)[0] for k in all_keys}
+        trail = {part1(k[len_prefix:]) for k in all_keys}
         return [prefix + k for k in trail]
 
     async def async_contains(self, key):
@@ -604,11 +611,17 @@ class V2from3Adapter(MutableMapping):
         # infomation is not set.
         key = self._v3store.list()
         fixed_paths = []
+        from there import print
+        print('Looking into adding zattrs...')
         for p in key:
-            if p.endswith(".group"):
+            print()
+            print('... for', p)
+            if p.endswith((".group",".array")):
                 res = self._v3store.get(p)
+                print('... which is a group or an array')
                 if json.loads(res.decode()).get("attributes"):
-                    fixed_paths.append(".zattrs")
+                    print('... attr is not empty')
+                    fixed_paths.append(p[10:-6]+".zattrs")
             fixed_paths.append(self._convert_3_to_2_keys(p))
 
         return list(set(fixed_paths))
@@ -619,10 +632,14 @@ class V2from3Adapter(MutableMapping):
         be carefull and use list-prefix in that case with the right optiosn
         to convert the chunks separators.
         """
+        from there import print
         v3path = self._convert_2_to_3_keys(path)
         if not v3path.endswith("/"):
             v3path = v3path + "/"
+        #if not v3path.startswith("/"):
+        #    v3path = '/'+v3path
         ps = [p for p in self._v3store.list_dir(v3path)]
+        print(ps)
         fixed_paths = []
         for p in ps:
             if p == ".group":
@@ -631,7 +648,9 @@ class V2from3Adapter(MutableMapping):
                     fixed_paths.append(".zattrs")
             fixed_paths.append(self._convert_3_to_2_keys(p))
 
-        return [p.split("/")[-1] for p in fixed_paths]
+        res = [p.split("/")[-2] for p in fixed_paths]
+        print(res)
+        return res
 
     def __iter__(self):
         return iter(self.keys())

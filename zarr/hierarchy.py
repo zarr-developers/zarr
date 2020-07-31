@@ -18,6 +18,8 @@ from zarr.storage import (MemoryStore, attrs_key, contains_array,
 from zarr.util import (InfoReporter, TreeViewer, is_valid_python_name, nolock,
                        normalize_shape, normalize_storage_path)
 
+from there import print
+
 
 class Group(MutableMapping):
     """Instantiate a group from an initialized store.
@@ -93,9 +95,13 @@ class Group(MutableMapping):
 
     def __init__(self, store, path=None, read_only=False, chunk_store=None,
                  cache_attrs=True, synchronizer=None):
+        if path:
+            assert not path.startswith(('meta/', 'data/'))
         self._store = store
         self._chunk_store = chunk_store
+        assert not path.endswith('/')
         self._path = normalize_storage_path(path)
+        assert not self._path.endswith('/')
         if self._path:
             self._key_prefix = self._path + '/'
         else:
@@ -112,6 +118,7 @@ class Group(MutableMapping):
         # initialize metadata
         try:
             if self._version == 3:
+                assert not self._key_prefix.startswith(('meta/', 'data/'))
                 if self._key_prefix:
                     mkey = 'meta/root/'+self._key_prefix + '.group'
                 else:
@@ -349,7 +356,9 @@ class Group(MutableMapping):
         <zarr.core.Array '/foo/bar/baz' (100,) float64>
 
         """
+        assert not item.startswith('meta/')
         path = self._item_path(item)
+        assert not path.startswith('meta/')
         if contains_array(self._store, path):
             return Array(self._store, read_only=self._read_only, path=path,
                          chunk_store=self._chunk_store,
@@ -429,10 +438,20 @@ class Group(MutableMapping):
         foo <class 'zarr.hierarchy.Group'>
 
         """
+        print(listdir, repr(self._path))
         for key in sorted(listdir(self._store, self._path)):
             path = self._key_prefix + key
-            if contains_group(self._store, path):
-                yield key, Group(self._store, path=path, read_only=self._read_only,
+            print(path, self._path, key)
+            if getattr(self._store, '_store_version', None) == 3:
+                if path.endswith('/'):
+                    if contains_group(self._store, path):
+                        yield key, Group(self._store, path=path[9:-1], read_only=self._read_only,
+                                 chunk_store=self._chunk_store,
+                                 cache_attrs=self.attrs.cache,
+                                 synchronizer=self._synchronizer)
+            else:
+                if contains_group(self._store, path):
+                    yield key, Group(self._store, path=path, read_only=self._read_only,
                                  chunk_store=self._chunk_store,
                                  cache_attrs=self.attrs.cache,
                                  synchronizer=self._synchronizer)
@@ -494,12 +513,14 @@ class Group(MutableMapping):
     def _array_iter(self, keys_only, method, recurse):
         for key in sorted(listdir(self._store, self._path)):
             path = self._key_prefix + key
+            assert not path.startswith('/meta')
             if contains_array(self._store, path):
-                yield key if keys_only else (key, self[key])
+                yield key.rstrip('/') if keys_only else (key.rstrip('/'), self[key])
             elif recurse and contains_group(self._store, path):
                 group = self[key]
                 for i in getattr(group, method)(recurse=recurse):
                     yield i
+            print(f"THE END")
 
     def visitvalues(self, func):
         """Run ``func`` on each object.

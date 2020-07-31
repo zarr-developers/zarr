@@ -18,6 +18,7 @@ path) and a `getsize` method (return the size in bytes of a given value).
 import atexit
 import errno
 import glob
+from there import print
 import multiprocessing
 import operator
 import os
@@ -87,6 +88,7 @@ def _path_to_prefix(path):
 
 def contains_array(store, path=None):
     """Return True if the store contains an array at the given logical path."""
+    assert not path.startswith('meta/')
     path = normalize_storage_path(path)
     prefix = _path_to_prefix(path)
     if getattr(store, '_store_version', 2) == 3:
@@ -96,6 +98,7 @@ def contains_array(store, path=None):
             key = 'meta/root.array'
     else:
         key = prefix + array_meta_key
+    print(f'Array key: {key=}')
     return key in store
 
 
@@ -176,8 +179,27 @@ def listdir(store, path=None):
     method, this will be called, otherwise will fall back to implementation via the
     `MutableMapping` interface."""
     path = normalize_storage_path(path)
+    print(repr(path))
     if getattr(store, '_store_version', None) == 3:
-        return store.list_dir(path)
+        print('v3')
+        if not path.endswith('/'):
+            path = path+'/'
+        if not path.startswith('/'):
+            path = '/'+path
+            
+        def norm(k):
+            if k.endswith('.group'):
+                return k[:-6]+'/'
+            if k.endswith('.array'):
+                return k[:-6]
+            return k
+
+            
+        res = {norm(k[10:]) for k in store.list_dir('meta/root'+path)}
+        for r in res:
+            assert not r.startswith('meta/')
+            print(r)
+        return res
 
     if hasattr(store, 'listdir'):
         # pass through
