@@ -173,7 +173,6 @@ class BaseV3Store:
                 return key
             else:
                 return key.split('/', maxsplit=1)[0]+'/'
-        print('async list', repr(prefix))
         all_keys = await self.async_list_prefix(prefix)
         len_prefix = len(prefix)
         trail = {part1(k[len_prefix:]) for k in all_keys}
@@ -231,7 +230,6 @@ class SyncV3DirectoryStore(AsyncV3DirectoryStore):
 
     def __getitem__(self, key):
         assert not key.endswith('root/.group')
-        print('asking for', key)
         return self.get(key)
 
 
@@ -611,16 +609,10 @@ class V2from3Adapter(MutableMapping):
         # infomation is not set.
         key = self._v3store.list()
         fixed_paths = []
-        from there import print
-        print('Looking into adding zattrs...')
         for p in key:
-            print()
-            print('... for', p)
             if p.endswith((".group",".array")):
                 res = self._v3store.get(p)
-                print('... which is a group or an array')
                 if json.loads(res.decode()).get("attributes"):
-                    print('... attr is not empty')
                     fixed_paths.append(p[10:-6]+".zattrs")
             fixed_paths.append(self._convert_3_to_2_keys(p))
 
@@ -632,14 +624,12 @@ class V2from3Adapter(MutableMapping):
         be carefull and use list-prefix in that case with the right optiosn
         to convert the chunks separators.
         """
-        from there import print
         v3path = self._convert_2_to_3_keys(path)
         if not v3path.endswith("/"):
             v3path = v3path + "/"
         #if not v3path.startswith("/"):
         #    v3path = '/'+v3path
         ps = [p for p in self._v3store.list_dir(v3path)]
-        print(ps)
         fixed_paths = []
         for p in ps:
             if p == ".group":
@@ -649,7 +639,6 @@ class V2from3Adapter(MutableMapping):
             fixed_paths.append(self._convert_3_to_2_keys(p))
 
         res = [p.split("/")[-2] for p in fixed_paths]
-        print(res)
         return res
 
     def __iter__(self):

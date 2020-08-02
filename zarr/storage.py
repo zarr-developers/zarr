@@ -18,7 +18,6 @@ path) and a `getsize` method (return the size in bytes of a given value).
 import atexit
 import errno
 import glob
-from there import print
 import multiprocessing
 import operator
 import os
@@ -98,7 +97,6 @@ def contains_array(store, path=None):
             key = 'meta/root.array'
     else:
         key = prefix + array_meta_key
-    print(f'Array key: {key=}')
     return key in store
 
 
@@ -179,9 +177,7 @@ def listdir(store, path=None):
     method, this will be called, otherwise will fall back to implementation via the
     `MutableMapping` interface."""
     path = normalize_storage_path(path)
-    print(repr(path))
     if getattr(store, '_store_version', None) == 3:
-        print('v3')
         if not path.endswith('/'):
             path = path+'/'
         if not path.startswith('/'):
@@ -198,7 +194,6 @@ def listdir(store, path=None):
         res = {norm(k[10:]) for k in store.list_dir('meta/root'+path)}
         for r in res:
             assert not r.startswith('meta/')
-            print(r)
         return res
 
     if hasattr(store, 'listdir'):

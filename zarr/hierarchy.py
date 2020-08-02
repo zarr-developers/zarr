@@ -18,7 +18,6 @@ from zarr.storage import (MemoryStore, attrs_key, contains_array,
 from zarr.util import (InfoReporter, TreeViewer, is_valid_python_name, nolock,
                        normalize_shape, normalize_storage_path)
 
-from there import print
 
 
 class Group(MutableMapping):
@@ -438,10 +437,8 @@ class Group(MutableMapping):
         foo <class 'zarr.hierarchy.Group'>
 
         """
-        print(listdir, repr(self._path))
         for key in sorted(listdir(self._store, self._path)):
             path = self._key_prefix + key
-            print(path, self._path, key)
             if getattr(self._store, '_store_version', None) == 3:
                 if path.endswith('/'):
                     if contains_group(self._store, path):
@@ -520,7 +517,6 @@ class Group(MutableMapping):
                 group = self[key]
                 for i in getattr(group, method)(recurse=recurse):
                     yield i
-            print(f"THE END")
 
     def visitvalues(self, func):
         """Run ``func`` on each object.

@@ -6,7 +6,6 @@ import math
 import operator
 import re
 from functools import reduce
-from there import print
 
 import numpy as np
 from numcodecs.compat import ensure_bytes, ensure_ndarray
@@ -113,7 +112,6 @@ class Array(object):
         self._chunk_store = chunk_store
         self._path = normalize_storage_path(path)
         self._version = getattr(store, '_store_version', 2)
-        print(f"{self._version=}")
         if self._path:
             self._key_prefix = self._path + '/'
         else:
@@ -151,7 +149,6 @@ class Array(object):
         if self._synchronizer is None:
             self._load_metadata_nosync()
         else:
-            print(array_meta_key)
             mkey = self._key_prefix + array_meta_key
             with self._synchronizer[mkey]:
                 self._load_metadata_nosync()
