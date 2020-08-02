@@ -8,12 +8,11 @@ import json
 import os
 import sys
 from collections.abc import MutableMapping
-from pathlib import Path
+import pathlib
 from string import ascii_letters, digits
 from numcodecs.compat import ensure_bytes
 
 from .utils import syncify
-from . import storage
 
 # flake8: noqa
 from .comparer import StoreComparer
@@ -22,6 +21,13 @@ RENAMED_MAP = {
     "dtype": "data_type",
     "order": "chunk_memory_layout",
 }
+
+
+from typing import NewType
+
+Key = NewType('Key', str)
+Path = NewType('Path', str)
+
 
 
 class BaseV3Store:
@@ -193,9 +199,9 @@ class AsyncV3DirectoryStore(BaseV3Store):
 
     def __init__(self, path):
         self.log.append("init")
-        self.root = Path(path)
+        self.root = pathlib.Path(path)
 
-    async def _get(self, key):
+    async def _get(self, key:Key):
         self.log.append("get" + key)
         path = self.root / key
         try:

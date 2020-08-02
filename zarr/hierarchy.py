@@ -98,7 +98,8 @@ class Group(MutableMapping):
             assert not path.startswith(('meta/', 'data/'))
         self._store = store
         self._chunk_store = chunk_store
-        assert not path.endswith('/')
+        if path:
+            assert not path.endswith('/')
         self._path = normalize_storage_path(path)
         assert not self._path.endswith('/')
         if self._path:

@@ -87,7 +87,8 @@ def _path_to_prefix(path):
 
 def contains_array(store, path=None):
     """Return True if the store contains an array at the given logical path."""
-    assert not path.startswith('meta/')
+    if path:
+        assert not path.startswith('meta/')
     path = normalize_storage_path(path)
     prefix = _path_to_prefix(path)
     if getattr(store, '_store_version', 2) == 3:
