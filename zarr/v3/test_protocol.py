@@ -27,9 +27,12 @@ async def test_scenario():
     await store.async_set("meta/thisisweird/also/a/group", bytes(1))
 
     assert len(store.list()) == 5
+    with pytest.raises(AssertionError):
+        assert store.list_dir("meta/this")
 
-    assert store.list_dir("meta/this") == ["meta/this", "meta/thisisweird"]
-    assert await store.async_list_dir("meta/this") == ["meta/this", "meta/thisisweird"]
+    assert set(store.list_dir("meta/this/")) == set(["meta/this/also/", "meta/this/is/"])
+    with pytest.raises(AssertionError):
+        assert await store.async_list_dir("meta/this")
 
 
 async def test_2():
@@ -40,7 +43,7 @@ async def test_2():
     assert isinstance(await store.async_get("meta/g1.group"), bytes)
 
 
-@pytest.mark.parametrize("klass", [SyncV3MemoryStore, SyncV3RedisStore])
+@pytest.mark.parametrize("klass", [SyncV3MemoryStore])
 def test_misc(klass):
 
     pytest.importorskip('redio')
