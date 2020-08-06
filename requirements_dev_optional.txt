@@ -22,6 +22,6 @@ s3fs==0.3.4; python_version > '3.0'
 # all async features in v3
 pytest-trio ; python_version >= '3.6'
 trio ; python_version >= '3.6'
-redio ; python_version >= '3.7'; sys_platform != 'win32'
+redio ; python_version >= '3.7' and sys_platform != 'win32'
 xarray ; python_version >= '3.8'
 netCDF4 ; python_version >= '3.8'
