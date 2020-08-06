@@ -172,6 +172,12 @@ def _listdir_from_keys(store, path=None):
             children.add(child)
     return sorted(children)
 
+def _norm(k):
+    if k.endswith('.group'):
+        return k[:-6]+'/'
+    if k.endswith('.array'):
+        return k[:-6]
+    return k
 
 def listdir(store, path=None):
     """Obtain a directory listing for the given path. If `store` provides a `listdir`
@@ -181,18 +187,11 @@ def listdir(store, path=None):
     if getattr(store, '_store_version', None) == 3:
         if not path.endswith('/'):
             path = path+'/'
-        if not path.startswith('/'):
-            path = '/'+path
+        assert path.startswith('/')
             
-        def norm(k):
-            if k.endswith('.group'):
-                return k[:-6]+'/'
-            if k.endswith('.array'):
-                return k[:-6]
-            return k
 
             
-        res = {norm(k[10:]) for k in store.list_dir('meta/root'+path)}
+        res = {_norm(k[10:]) for k in store.list_dir('meta/root'+path)}
         for r in res:
             assert not r.startswith('meta/')
         return res
