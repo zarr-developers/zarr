@@ -24,3 +24,4 @@ pytest-trio ; python_version >= '3.6'
 trio ; python_version >= '3.6'
 redio ; python_version >= '3.7'
 xarray
+netCDF4
