@@ -1,7 +1,7 @@
 import pytest
 
 from zarr.storage import init_group
-from zarr.v3 import SyncV3MemoryStore, SyncV3RedisStore, V2from3Adapter, ZarrProtocolV3
+from zarr.v3 import SyncV3MemoryStore, SyncV3RedisStore, V2from3Adapter, ZarrProtocolV3, AsyncV3RedisStore
 from zarr.storage import MemoryStore
 
 
@@ -55,7 +55,7 @@ async def test_2():
     assert isinstance(await store.async_get("meta/g1.group"), bytes)
 
 
-@pytest.mark.parametrize("klass", [SyncV3MemoryStore])
+@pytest.mark.parametrize("klass", [SyncV3MemoryStore, SyncV3RedisStore])
 def test_misc(klass):
 
     pytest.importorskip('redio')
