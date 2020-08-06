@@ -14,7 +14,7 @@ def test_xarray():
         with open('rasm.nc', 'wb') as f:
             f.write(r.content)
 
-    ds = xr.open_dataset('/Users/bussonniermatthias/dev/xarray-data/rasm.nc')
+    ds = xr.open_dataset('rasm.nc')
 
 
     compressor = zarr.Blosc(cname='zstd', clevel=3)
