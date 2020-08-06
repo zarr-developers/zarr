@@ -49,10 +49,7 @@ def decode_array_metadata_v3(s):
             fill_value=fill_value,
             chunk_memory_layout=meta['chunk_memory_layout'],
         )
-    except Exception as e:
-        raise MetadataError('error decoding metadata: %s' % e)
-    else:
-        return meta
+    return meta
 
 def decode_array_metadata(s):
     meta = parse_metadata(s)
