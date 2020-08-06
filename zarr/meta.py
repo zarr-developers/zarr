@@ -21,8 +21,6 @@ def parse_metadata(s):
     # all groups and arrays will already have been parsed from JSON.
     if isinstance(s, Mapping):
         # assume metadata has already been parsed into a mapping object
-        if zarr.util._strict:
-            assert False
         meta = s
 
     else:
