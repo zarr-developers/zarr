@@ -1,15 +1,15 @@
-import requests
-import zarr
-import xarray as xr
-from zarr.v3 import V2from3Adapter, SyncV3MemoryStore, SyncV3DirectoryStore, StoreComparer
-from zarr import DirectoryStore
-
-from pathlib import Path
 
 import sys
 
 
 if sys.version_info >= (3 , 8):
+    import requests
+    import zarr
+    import xarray as xr
+    from zarr.v3 import V2from3Adapter, SyncV3MemoryStore, SyncV3DirectoryStore, StoreComparer
+    from zarr import DirectoryStore
+
+    from pathlib import Path
 
     def test_xarray():
 
