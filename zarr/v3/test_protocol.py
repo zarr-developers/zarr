@@ -2,7 +2,19 @@ import pytest
 
 from zarr.storage import init_group
 from zarr.v3 import SyncV3MemoryStore, SyncV3RedisStore, V2from3Adapter, ZarrProtocolV3
+from zarr.storage import MemoryStore
 
+
+@pytest.mark.parametrize(("store","key"), [(SyncV3MemoryStore(), '.group'), (MemoryStore(), '.zgroup')])
+def test_cover_Attribute_no_key(store, key):
+    from zarr.hierarchy import Attributes
+    Attributes(store, key=key)
+
+
+def test_cover_Attribute_warong_key():
+    from zarr.hierarchy import Attributes
+    with pytest.raises(ValueError):
+        Attributes(SyncV3MemoryStore(), key='.zattr')
 
 async def test_scenario():
     pytest.importorskip('trio')
