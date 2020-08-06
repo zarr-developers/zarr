@@ -30,6 +30,17 @@ Path = NewType('Path', str)
 
 
 
+def _assert_valid_path(path: str):
+    if sys.version_info > (3, 7):
+        assert path.isascii()
+    assert path.startswith('/')
+    assert '\\' not in path
+
+
+
+    
+
+
 class BaseV3Store:
     """
     Base utility class to create a v3-complient store with extra checks and utilities.
@@ -42,7 +53,7 @@ class BaseV3Store:
     _async = True
 
     @staticmethod
-    def _valid_path(key: str) -> bool:
+    def _valid_key(key: str) -> bool:
         """
         Verify that a key is confirm to the specification.
 
@@ -80,7 +91,7 @@ class BaseV3Store:
             - return group metadata objects are json and contain a signel
             `attributes` keys.
         """
-        assert self._valid_path(key)
+        assert self._valid_key(key)
         result = await self._get(key)
         assert isinstance(result, bytes), "Expected bytes, got {}".format(result)
         if key == "zarr.json":
@@ -153,7 +164,7 @@ class BaseV3Store:
             raise TypeError(
                 "expected, bytes, or bytesarray, got {}".format(type(value))
             )
-        assert self._valid_path(key)
+        assert self._valid_key(key)
         await self._set(key, value)
 
     async def async_list_prefix(self, prefix):
@@ -197,9 +208,9 @@ class BaseV3Store:
 class AsyncV3DirectoryStore(BaseV3Store):
     log = []
 
-    def __init__(self, path):
+    def __init__(self, key):
         self.log.append("init")
-        self.root = pathlib.Path(path)
+        self.root = pathlib.Path(key)
 
     async def _get(self, key:Key):
         self.log.append("get" + key)
@@ -222,7 +233,7 @@ class AsyncV3DirectoryStore(BaseV3Store):
         ll = []
         for it in os.walk(self.root):
             for file in it[2]:
-                ll.append('/'.join(it[0], file)[len(str(self.root)) + 1:])
+                ll.append('/'.join([it[0], file])[len(str(self.root)) + 1:])
         return ll
 
     async def async_delete(self, key):
@@ -327,13 +338,16 @@ class AsyncZarrProtocolV3:
         except KeyError:
             await self._store.async_set("zarr.json", json.dumps(basic_info).encode())
 
-    def _g_meta_key(self, key):
-        return "meta/" + key + ".group"
+    def _g_meta_key(self, path):
+        _assert_valid_path(path)
+        return "meta" + path + ".group"
 
-    def _a_meta_key(self, key):
-        return "meta/" + key + ".array"
+    def _a_meta_key(self, path):
+        _assert_valid_path(path)
+        return "meta" + path + ".array"
 
     async def get_group(self, path: str):
+        _assert_valid_path(path)
         pass
 
     async def async_create_group(self, group_path: str):
@@ -348,6 +362,7 @@ class AsyncZarrProtocolV3:
 
         we could also assume that protocol implementation never do that.
         """
+        _assert_valid_path(group_path)
         DEFAULT_GROUP = """{
         "attributes": {
             "spam": "ham",
@@ -389,6 +404,7 @@ class AsyncZarrProtocolV3:
 
         we could also assume that protocol implementation never do that.
         """
+        _assert_valid_path(array_path)
         DEFAULT_ARRAY = """{
                 "extensions": [],
         "attributes": {

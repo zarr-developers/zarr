@@ -51,7 +51,7 @@ async def test_2():
     protocol = ZarrProtocolV3(SyncV3MemoryStore)
     store = protocol._store
 
-    await protocol.async_create_group("g1")
+    await protocol.async_create_group("/g1")
     assert isinstance(await store.async_get("meta/g1.group"), bytes)
 
 
