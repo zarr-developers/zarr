@@ -22,7 +22,6 @@ def parse_metadata(s):
     if isinstance(s, Mapping):
         # assume metadata has already been parsed into a mapping object
         meta = s
-
     else:
         # assume metadata needs to be parsed as JSON
         meta = json_loads(s)
