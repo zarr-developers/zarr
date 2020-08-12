@@ -91,7 +91,7 @@ class BaseV3Store:
             - return group metadata objects are json and contain a signel
             `attributes` keys.
         """
-        assert self._valid_key(key)
+        assert self._valid_key(key), key
         result = await self._get(key)
         assert isinstance(result, bytes), "Expected bytes, got {}".format(result)
         if key == "zarr.json":
