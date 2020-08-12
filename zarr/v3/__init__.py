@@ -233,7 +233,9 @@ class AsyncV3DirectoryStore(BaseV3Store):
         ll = []
         for it in os.walk(self.root):
             for file in it[2]:
-                ll.append('/'.join([it[0], file])[len(str(self.root)) + 1:])
+                str_key = '/'.join([it[0], file])[len(str(self.root)) + 1:]
+                assert '\\' not in str_key, str_key
+                ll.append(str_path)
         return ll
 
     async def async_delete(self, key):
