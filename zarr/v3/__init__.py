@@ -13,6 +13,7 @@ from string import ascii_letters, digits
 from numcodecs.compat import ensure_bytes
 
 from .utils import syncify
+from . import storage
 
 # flake8: noqa
 from .comparer import StoreComparer
