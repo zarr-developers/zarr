@@ -232,8 +232,12 @@ class AsyncV3DirectoryStore(BaseV3Store):
     async def async_list(self):
         ll = []
         for it in os.walk(self.root):
+            if os.path.sep != '/':
+                prefix = '/'.join(it[0].split(os.path.sep))
+            else:
+                prefix = it[0]
             for file in it[2]:
-                str_key = '/'.join([it[0], file])[len(str(self.root)) + 1:]
+                str_key = '/'.join([prefix, file])[len(str(self.root)) + 1:]
                 assert '\\' not in str_key, str_key
                 ll.append(str_key)
         return ll
