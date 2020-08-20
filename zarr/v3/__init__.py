@@ -12,7 +12,7 @@ import pathlib
 from string import ascii_letters, digits
 from numcodecs.compat import ensure_bytes
 
-from .utils import syncify
+from .utils import syncify, nested_run
 
 # flake8: noqa
 from .comparer import StoreComparer
@@ -200,7 +200,12 @@ class BaseV3Store:
         return key in self.list()
 
     def __contains__(self, key):
-        return self.contains(key)
+        if hasattr(self, 'contains'):
+            return self.contains(key)
+        else:
+            with nested_run():
+                return trio.run(self.async_contains, key)
+
 
 
 
