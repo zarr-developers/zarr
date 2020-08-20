@@ -43,7 +43,7 @@ class AsyncTest(unittest.TestCase):
 class AsyncTestRedis(AsyncTest):
 
     async def test_I(self):
-        assert True
+        assert False
 
     async def create_store(self):
         pytest.importorskip('redio')
