@@ -305,6 +305,11 @@ class AsyncV3RedisStore(BaseV3Store):
 @syncify
 class SyncV3RedisStore(AsyncV3RedisStore):
     _async = False
+    
+    def __setitem__(self, key, value):
+        assert '.zgroup' not in key
+        return self.set(key, value)
+
 
 
 class AsyncV3MemoryStore(BaseV3Store):

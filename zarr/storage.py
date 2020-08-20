@@ -468,8 +468,9 @@ def init_group(store, overwrite=False, path=None, chunk_store=None):
     path = normalize_storage_path(path)
 
     # ensure parent group initialized
-    _require_parent_group(path, store=store, chunk_store=chunk_store,
-                          overwrite=overwrite)
+    if getattr(store, '_store_version', 2) != 3:
+        _require_parent_group(path, store=store, chunk_store=chunk_store,
+                            overwrite=overwrite)
 
     # initialise metadata
     _init_group_metadata(store=store, overwrite=overwrite, path=path,
@@ -493,7 +494,14 @@ def _init_group_metadata(store, overwrite=False, path=None, chunk_store=None):
     # N.B., currently no metadata properties are needed, however there may
     # be in future
     meta = dict()
-    key = _path_to_prefix(path) + group_meta_key
+    prefix = _path_to_prefix(path)
+    if getattr(store, '_store_version', 2) == 3:
+        if prefix:
+            key = 'meta/root/'+prefix + '.group'
+        else:
+            key = 'meta/root.group'
+    else:
+        key = prefix + group_meta_key
     store[key] = encode_group_metadata(meta)
 
 
