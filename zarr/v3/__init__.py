@@ -13,7 +13,6 @@ from string import ascii_letters, digits
 from numcodecs.compat import ensure_bytes
 
 from .utils import syncify, nested_run
-import trio
 
 # flake8: noqa
 from .comparer import StoreComparer
@@ -205,6 +204,7 @@ class BaseV3Store:
             return self.contains(key)
         else:
             with nested_run():
+                import trio
                 return trio.run(self.async_contains, key)
 
 
