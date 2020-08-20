@@ -47,8 +47,9 @@ class AsyncTestRedis(AsyncTest):
 
     async def create_store(self):
         pytest.importorskip('redio')
-        from zarr.v3 import V2from3Adapter, AsyncV3RedisStore
-        rs = AsyncV3RedisStore()
+        from zarr.v3 import V2from3Adapter, SyncV3RedisStore
+        # create a sync store for now as some Group methonds are sync.
+        rs = SyncV3RedisStore()
         await rs.async_initialize()
         return rs, None
 
