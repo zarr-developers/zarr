@@ -30,11 +30,7 @@ class Attributes(MutableMapping):
 
         assert not key.endswith('root/.group')
         self._version = getattr(store, '_store_version', 2)
-        if not key:
-            if self._version == 2:
-                key = '.zattr'
-            elif self._version == 3:
-                raise ValueError('a key must be passed in V3')
+        assert key
             
         if self._version == 3 and '.z' in key:
             raise ValueError('nop, this is v3')
@@ -128,8 +124,7 @@ class Attributes(MutableMapping):
         self._write_op(self._put_nosync, d)
 
     def _put_nosync(self, d):
-        if self._version == 3:
-            d = {'attributes': d}
+        assert self._version != 3, "attributes are stored on group/arrays in v3."
         self.store[self.key] = json_dumps(d)
         if self.cache:
             self._cached_asdict = d
