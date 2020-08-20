@@ -746,9 +746,8 @@ def setdel_hierarchy_checks(store):
     assert 'r/s' not in store
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6), reason='needs trio')
+@pytest.mark.skipif(sys.version_info < (3, 6), reason="needs trio")
 class TestV3Adapter(StoreTests, unittest.TestCase):
-
     def create_store(self):
         from zarr.v3 import V2from3Adapter, SyncV3MemoryStore, StoreComparer
 
@@ -757,8 +756,8 @@ class TestV3Adapter(StoreTests, unittest.TestCase):
 
     def test_store_contains_bytes(self):
         store = self.create_store()
-        store['foo'] = np.array([97, 98, 99, 100, 101], dtype=np.uint8)
-        assert store['foo'] == b'abcde'
+        store["foo"] = np.array([97, 98, 99, 100, 101], dtype=np.uint8)
+        assert store["foo"] == b"abcde"
 
     def test_clear(self):
         super().test_clear()

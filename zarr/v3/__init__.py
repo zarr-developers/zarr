@@ -25,20 +25,15 @@ RENAMED_MAP = {
 
 from typing import NewType
 
-Key = NewType('Key', str)
-Path = NewType('Path', str)
-
+Key = NewType("Key", str)
+Path = NewType("Path", str)
 
 
 def _assert_valid_path(path: str):
     if sys.version_info > (3, 7):
         assert path.isascii()
-    assert path.startswith('/')
-    assert '\\' not in path
-
-
-
-    
+    assert path.startswith("/")
+    assert "\\" not in path
 
 
 class BaseV3Store:
@@ -150,10 +145,9 @@ class BaseV3Store:
             }
             current = set(v.keys())
             # ets do some conversions.
-            assert (
-                current == expected
-            ), "{} extra, {} missing in {}"\
-                    .format(current - expected, expected - curent, v)
+            assert current == expected, "{} extra, {} missing in {}".format(
+                current - expected, expected - curent, v
+            )
 
             if key.endswith(".group"):
                 v = json.loads(value.decode())
@@ -183,32 +177,31 @@ class BaseV3Store:
         """
         Note: carefully test this with trailing/leading slashes
         """
-        assert prefix.endswith('/')
+        assert prefix.endswith("/")
 
         def part1(key):
-            if '/' not in key:
+            if "/" not in key:
                 return key
             else:
-                return key.split('/', maxsplit=1)[0]+'/'
+                return key.split("/", maxsplit=1)[0] + "/"
+
         all_keys = await self.async_list_prefix(prefix)
         len_prefix = len(prefix)
         trail = {part1(k[len_prefix:]) for k in all_keys}
         return [prefix + k for k in trail]
 
     async def async_contains(self, key):
-        assert key.startswith(('meta/', 'data/')), "Got {}".format(key)
+        assert key.startswith(("meta/", "data/")), "Got {}".format(key)
         return key in await self.async_list()
 
     def __contains__(self, key):
-        if hasattr(self, 'contains'):
+        if hasattr(self, "contains"):
             return self.contains(key)
         else:
             with nested_run():
                 import trio
+
                 return trio.run(self.async_contains, key)
-
-
-
 
 
 class AsyncV3DirectoryStore(BaseV3Store):
@@ -218,7 +211,7 @@ class AsyncV3DirectoryStore(BaseV3Store):
         self.log.append("init")
         self.root = pathlib.Path(key)
 
-    async def _get(self, key:Key):
+    async def _get(self, key: Key):
         self.log.append("get" + key)
         path = self.root / key
         try:
@@ -228,7 +221,7 @@ class AsyncV3DirectoryStore(BaseV3Store):
 
     async def _set(self, key, value):
         self.log.append("set {} {}".format(key, value))
-        assert not key.endswith('root/.group')
+        assert not key.endswith("root/.group")
         assert value
         path = self.root / key
         if not path.parent.exists():
@@ -238,13 +231,13 @@ class AsyncV3DirectoryStore(BaseV3Store):
     async def async_list(self):
         ll = []
         for it in os.walk(self.root):
-            if os.path.sep != '/':
-                prefix = '/'.join(it[0].split(os.path.sep))
+            if os.path.sep != "/":
+                prefix = "/".join(it[0].split(os.path.sep))
             else:
                 prefix = it[0]
             for file in it[2]:
-                str_key = '/'.join([prefix, file])[len(str(self.root)) + 1:]
-                assert '\\' not in str_key, str_key
+                str_key = "/".join([prefix, file])[len(str(self.root)) + 1 :]
+                assert "\\" not in str_key, str_key
                 ll.append(str_key)
         return ll
 
@@ -253,12 +246,13 @@ class AsyncV3DirectoryStore(BaseV3Store):
         path = self.root / key
         os.remove(path)
 
+
 @syncify
 class SyncV3DirectoryStore(AsyncV3DirectoryStore):
     _async = False
 
     def __getitem__(self, key):
-        assert not key.endswith('root/.group')
+        assert not key.endswith("root/.group")
         return self.get(key)
 
 
@@ -305,11 +299,10 @@ class AsyncV3RedisStore(BaseV3Store):
 @syncify
 class SyncV3RedisStore(AsyncV3RedisStore):
     _async = False
-    
-    def __setitem__(self, key, value):
-        assert '.zgroup' not in key
-        return self.set(key, value)
 
+    def __setitem__(self, key, value):
+        assert ".zgroup" not in key
+        return self.set(key, value)
 
 
 class AsyncV3MemoryStore(BaseV3Store):
@@ -327,7 +320,6 @@ class AsyncV3MemoryStore(BaseV3Store):
 
     async def async_list(self):
         return list(self._backend.keys())
-
 
 
 @syncify
@@ -441,6 +433,7 @@ class V2from3Adapter(MutableMapping):
     """
     class to wrap a 3 store and return a V2 interface
     """
+
     _store_version = 2
 
     def __init__(self, v3store):
@@ -518,7 +511,7 @@ class V2from3Adapter(MutableMapping):
         # TODO convert to bytes if needed
 
         v3key = self._convert_2_to_3_keys(key)
-        assert not key.endswith('root/.group')
+        assert not key.endswith("root/.group")
         # convert chunk separator from ``.`` to ``/``
 
         if key.endswith(".zarray"):
@@ -534,7 +527,7 @@ class V2from3Adapter(MutableMapping):
                 data[target] = tmp
             data["chunk_grid"] = {}
             data["chunk_grid"]["chunk_shape"] = data["chunks"]
-            del data['chunks']
+            del data["chunks"]
             data["chunk_grid"]["type"] = "rectangular"
             data["chunk_grid"]["separator"] = "/"
             assert data["zarr_format"] == 2
@@ -609,7 +602,7 @@ class V2from3Adapter(MutableMapping):
 
         """
         # head of the hierachy is different:
-        if v2key in (".zgroup", ".zattrs") :
+        if v2key in (".zgroup", ".zattrs"):
             return "meta/root.group"
         if v2key == ".zarray":
             return "meta/root.array"
@@ -649,10 +642,10 @@ class V2from3Adapter(MutableMapping):
         key = self._v3store.list()
         fixed_paths = []
         for p in key:
-            if p.endswith((".group",".array")):
+            if p.endswith((".group", ".array")):
                 res = self._v3store.get(p)
                 if json.loads(res.decode()).get("attributes"):
-                    fixed_paths.append(p[10:-6]+".zattrs")
+                    fixed_paths.append(p[10:-6] + ".zattrs")
             fixed_paths.append(self._convert_3_to_2_keys(p))
 
         return list(set(fixed_paths))
@@ -666,7 +659,7 @@ class V2from3Adapter(MutableMapping):
         v3path = self._convert_2_to_3_keys(path)
         if not v3path.endswith("/"):
             v3path = v3path + "/"
-        #if not v3path.startswith("/"):
+        # if not v3path.startswith("/"):
         #    v3path = '/'+v3path
         ps = [p for p in self._v3store.list_dir(v3path)]
         fixed_paths = []

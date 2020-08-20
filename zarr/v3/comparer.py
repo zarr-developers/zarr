@@ -36,7 +36,9 @@ class StoreComparer(MutableMapping):
             j1, j2 = json.loads(k1.decode()), json.loads(k2.decode())
             assert j1 == j2, "{} != {}".format(j1, j2)
         else:
-            assert k2 == k1, "{} != {}\n missing: {},\n extra:{}".format(k1, k2, k1-k2, k2-k1)
+            assert k2 == k1, "{} != {}\n missing: {},\n extra:{}".format(
+                k1, k2, k1 - k2, k2 - k1
+            )
         return k1
 
     def __setitem__(self, key, value):
@@ -68,7 +70,9 @@ class StoreComparer(MutableMapping):
                 assert isinstance(e2, type(e1))
             raise
         k2 = sorted(self.tested.keys())
-        assert k2 == k1, "got {};\n expecting {}\n missing: {},\n extra:{}".format(k1, k2, set(k1)-set(k2), set(k2)-set(k1))
+        assert k2 == k1, "got {};\n expecting {}\n missing: {},\n extra:{}".format(
+            k1, k2, set(k1) - set(k2), set(k2) - set(k1)
+        )
         return k1
 
     def __delitem__(self, key):

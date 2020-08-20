@@ -50,6 +50,7 @@ def syncify(cls, *args, **kwargs):
                     See {attr} documentation.
                     """
                     import trio
+
                     __tracebackhide__ = True
 
                     with nested_run():
@@ -68,4 +69,3 @@ def syncify(cls, *args, **kwargs):
             setattr(cls, attr[6:], cl(meth))
 
     return cls
-

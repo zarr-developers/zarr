@@ -55,7 +55,7 @@ async def _init_group_metadata(store, overwrite=False, path=None, chunk_store=No
 async def contains_array(store, path=None):
     """Return True if the store contains an array at the given logical path."""
     path = normalize_storage_path(path)
-    key = 'meta/root'+path+'.array'
+    key = "meta/root" + path + ".array"
     return key in await store.list()
 
 

@@ -35,47 +35,54 @@ from zarr import v3
 import zarr.v3.storage as v3storage
 
 
-
 # Async test need to be top-level.
 async def create_store():
-    pytest.importorskip('redio')
+    pytest.importorskip("redio")
     from zarr.v3 import V2from3Adapter, SyncV3RedisStore
+
     # create a sync store for now as some Group methonds are sync.
     rs = SyncV3RedisStore()
     await rs.async_initialize()
     return rs, None
 
-async def create_group(store=None, path=None, read_only=False,
-                 chunk_store=None, synchronizer=None):
+
+async def create_group(
+    store=None, path=None, read_only=False, chunk_store=None, synchronizer=None
+):
     # can be overridden in sub-classes
     if store is None:
         store, chunk_store = await create_store()
     init_group(store, path=path, chunk_store=chunk_store)
-    g = Group(store, path=path, read_only=read_only,
-              chunk_store=chunk_store, synchronizer=synchronizer)
-    #return g
+    g = Group(
+        store,
+        path=path,
+        read_only=read_only,
+        chunk_store=chunk_store,
+        synchronizer=synchronizer,
+    )
+    # return g
+
 
 async def test_group_init_1():
     store, chunk_store = await create_store()
     g = await create_group(store, chunk_store=chunk_store)
-    #assert store is g.store
-    #if chunk_store is None:
+    # assert store is g.store
+    # if chunk_store is None:
     #    assert store is g.chunk_store
-    #else:
+    # else:
     #    assert chunk_store is g.chunk_store
-    #assert not g.read_only
-    #assert '' == g.path
-    #assert '/' == g.name
-    #assert '' == g.basename
-    #assert isinstance(g.attrs, Attributes)
-    #g.attrs['foo'] = 'bar'
-    #assert g.attrs['foo'] == 'bar'
-    #assert isinstance(g.info, InfoReporter)
-    #assert isinstance(repr(g.info), str)
-    #assert isinstance(g.info._repr_html_(), str)
-    #if hasattr(store, 'close'):
+    # assert not g.read_only
+    # assert '' == g.path
+    # assert '/' == g.name
+    # assert '' == g.basename
+    # assert isinstance(g.attrs, Attributes)
+    # g.attrs['foo'] = 'bar'
+    # assert g.attrs['foo'] == 'bar'
+    # assert isinstance(g.info, InfoReporter)
+    # assert isinstance(repr(g.info), str)
+    # assert isinstance(g.info._repr_html_(), str)
+    # if hasattr(store, 'close'):
     #    store.close()
-
 
 
 # noinspection PyStatementEffect
@@ -979,7 +986,6 @@ class TestGroup(unittest.TestCase):
 
 @pytest.mark.skipif(sys.version_info < (3, 6), reason="requires trio")
 class TestGroupWithV3MemoryStore(TestGroup):
-
     @staticmethod
     def create_store():
         from zarr.v3 import V2from3Adapter, SyncV3MemoryStore, StoreComparer
@@ -989,7 +995,6 @@ class TestGroupWithV3MemoryStore(TestGroup):
 
 @pytest.mark.skipif(sys.version_info < (3, 6), reason="requires trio")
 class TestGroupWithV3DirectoryStore(TestGroup):
-
     @staticmethod
     def create_store():
         path = tempfile.mkdtemp()
@@ -1004,10 +1009,9 @@ class TestGroupWithV3DirectoryStore(TestGroup):
 
 @pytest.mark.skipif(sys.version_info < (3, 6), reason="requires trio")
 class TestGroupWithV3RedisStore(TestGroup):
-
     @staticmethod
     def create_store():
-        pytest.importorskip('redio')
+        pytest.importorskip("redio")
         from zarr.v3 import V2from3Adapter, SyncV3RedisStore, StoreComparer
 
         rs = SyncV3RedisStore()

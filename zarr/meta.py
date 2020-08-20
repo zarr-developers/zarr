@@ -10,7 +10,7 @@ from zarr.util import json_dumps, json_loads
 import zarr.util
 
 ZARR_FORMAT = 2
-ZARR_FORMAT_v3 = '3'
+ZARR_FORMAT_v3 = "3"
 
 
 def parse_metadata(s):
@@ -29,21 +29,20 @@ def parse_metadata(s):
     return meta
 
 
-
 def decode_array_metadata_v3(s):
     meta = parse_metadata(s)
 
     # check metadata format
     # extract array metadata fields
-    dtype = decode_dtype(meta['data_type'])
-    fill_value = decode_fill_value(meta['fill_value'], dtype)
+    dtype = decode_dtype(meta["data_type"])
+    fill_value = decode_fill_value(meta["fill_value"], dtype)
     meta = dict(
-        shape=tuple(meta['shape']),
-        chunk_grid=tuple(meta['chunk_grid']['chunk_shape']),
+        shape=tuple(meta["shape"]),
+        chunk_grid=tuple(meta["chunk_grid"]["chunk_shape"]),
         data_type=dtype,
-        compressor=meta['compressor'],
+        compressor=meta["compressor"],
         fill_value=fill_value,
-        chunk_memory_layout=meta['chunk_memory_layout'],
+        chunk_memory_layout=meta["chunk_memory_layout"],
     )
     return meta
 
@@ -70,7 +69,7 @@ def decode_array_metadata(s):
             filters=meta['filters'],
         )
     except Exception as e:
-        raise MetadataError('error decoding metadata') from e
+        raise MetadataError("error decoding metadata") from e
     else:
         return meta
 
@@ -111,6 +110,7 @@ def _decode_dtype_descr(d):
 def decode_dtype(d):
     d = _decode_dtype_descr(d)
     return np.dtype(d)
+
 
 def decode_group_metadata_v3(s):
     return json.loads(s)

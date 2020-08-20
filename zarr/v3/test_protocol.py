@@ -1,23 +1,34 @@
 import pytest
 
 from zarr.storage import init_group
-from zarr.v3 import SyncV3MemoryStore, SyncV3RedisStore, V2from3Adapter, ZarrProtocolV3, AsyncV3RedisStore
+from zarr.v3 import (
+    SyncV3MemoryStore,
+    SyncV3RedisStore,
+    V2from3Adapter,
+    ZarrProtocolV3,
+    AsyncV3RedisStore,
+)
 from zarr.storage import MemoryStore
 
 
-@pytest.mark.parametrize(("store","key"), [(SyncV3MemoryStore(), '.group'), (MemoryStore(), '.zgroup')])
+@pytest.mark.parametrize(
+    ("store", "key"), [(SyncV3MemoryStore(), ".group"), (MemoryStore(), ".zgroup")]
+)
 def test_cover_Attribute_no_key(store, key):
     from zarr.hierarchy import Attributes
+
     Attributes(store, key=key)
 
 
 def test_cover_Attribute_warong_key():
     from zarr.hierarchy import Attributes
+
     with pytest.raises(ValueError):
-        Attributes(SyncV3MemoryStore(), key='.zattr')
+        Attributes(SyncV3MemoryStore(), key=".zattr")
+
 
 async def test_scenario():
-    pytest.importorskip('trio')
+    pytest.importorskip("trio")
 
     store = SyncV3MemoryStore()
 
@@ -42,7 +53,9 @@ async def test_scenario():
     with pytest.raises(AssertionError):
         assert store.list_dir("meta/this")
 
-    assert set(store.list_dir("meta/this/")) == set(["meta/this/also/", "meta/this/is/"])
+    assert set(store.list_dir("meta/this/")) == set(
+        ["meta/this/also/", "meta/this/is/"]
+    )
     with pytest.raises(AssertionError):
         assert await store.async_list_dir("meta/this")
 
@@ -58,7 +71,7 @@ async def test_2():
 @pytest.mark.parametrize("klass", [SyncV3MemoryStore, SyncV3RedisStore])
 def test_misc(klass):
 
-    pytest.importorskip('redio')
+    pytest.importorskip("redio")
 
     _store = klass()
     _store.initialize()
