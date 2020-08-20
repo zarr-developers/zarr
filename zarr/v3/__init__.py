@@ -13,6 +13,7 @@ from string import ascii_letters, digits
 from numcodecs.compat import ensure_bytes
 
 from .utils import syncify, nested_run
+import trio
 
 # flake8: noqa
 from .comparer import StoreComparer
@@ -197,7 +198,7 @@ class BaseV3Store:
 
     async def async_contains(self, key):
         assert key.startswith(('meta/', 'data/')), "Got {}".format(key)
-        return key in self.list()
+        return key in await self.async_list()
 
     def __contains__(self, key):
         if hasattr(self, 'contains'):

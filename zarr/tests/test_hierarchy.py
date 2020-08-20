@@ -32,6 +32,8 @@ from zarr.util import InfoReporter
 from zarr.tests.util import skip_test_env_var
 from zarr import v3
 
+import zarr.v3.storage as v3storage
+
 
 class AsyncTest(unittest.TestCase):
 
@@ -55,8 +57,7 @@ class AsyncTestRedis(AsyncTest):
         # can be overridden in sub-classes
         if store is None:
             store, chunk_store = await self.create_store()
-        await v3.storage.init_group(store, path=path, chunk_store=chunk_store)
-        raise NotImplementedError
+        await v3storage.init_group(store, path=path, chunk_store=chunk_store)
         g = Group(store, path=path, read_only=read_only,
                   chunk_store=chunk_store, synchronizer=synchronizer)
         return g
