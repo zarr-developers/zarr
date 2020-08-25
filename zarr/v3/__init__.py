@@ -101,18 +101,6 @@ class BaseV3Store:
             assert set(v.keys()) == {"attributes"}, "got unexpected keys {}".format(
                 v.keys()
             )
-        if key.endswith(".array"):
-            try:
-                res = await self._get(key.replace(".array", ".group"))
-                assert False, "expecting keyerror, got {}".format(res)
-            except KeyError:
-                pass
-        if key.endswith(".group"):
-            try:
-                res = await self._get(key.replace(".group", ".array"))
-                assert False, "expecting keyerror, got {}".format(res)
-            except KeyError:
-                pass
         return result
 
     async def async_set(self, key: str, value: bytes):
@@ -149,15 +137,7 @@ class BaseV3Store:
                 current - expected, expected - curent, v
             )
 
-            if key.endswith(".group"):
-                v = json.loads(value.decode())
-                assert set(v.keys()) == {"attributes"}, "got unexpected keys {}".format(
-                    v.keys()
-                )
-        if not isinstance(value, bytes):
-            raise TypeError(
-                "expected, bytes, or bytesarray, got {}".format(type(value))
-            )
+        assert isinstance(value, bytes):
         assert self._valid_key(key)
         await self._set(key, value)
 
@@ -165,7 +145,6 @@ class BaseV3Store:
         return [k for k in await self.async_list() if k.startswith(prefix)]
 
     async def async_delete(self, key):
-        # TODO: not good in the base.
         deln = await self._backend().delete(key)
         if deln == 0:
             raise KeyError(key)
@@ -351,14 +330,6 @@ class AsyncZarrProtocolV3:
         _assert_valid_path(path)
         return "meta" + path + ".group"
 
-    def _a_meta_key(self, path):
-        _assert_valid_path(path)
-        return "meta" + path + ".array"
-
-    async def get_group(self, path: str):
-        _assert_valid_path(path)
-        pass
-
     async def async_create_group(self, group_path: str):
         """
         create a goup at `group_path`,
@@ -477,7 +448,6 @@ class V2from3Adapter(MutableMapping):
         assert isinstance(res, bytes)
         if key.endswith(".zattrs"):
             data = json.loads(res.decode())["attributes"]
-            data = json.loads(res.decode())["attributes"]
             res = json.dumps(data, indent=4).encode()
         elif key.endswith(".zarray"):
             data = json.loads(res.decode())
@@ -517,12 +487,7 @@ class V2from3Adapter(MutableMapping):
         if key.endswith(".zarray"):
             data = json.loads(value.decode())
             for source, target in RENAMED_MAP.items():
-                try:
-                    tmp = data[source]
-                except KeyError:
-                    raise KeyError(
-                        "{source} not found in {value}".format(source, value)
-                    )
+                tmp = data[source]
                 del data[source]
                 data[target] = tmp
             data["chunk_grid"] = {}
