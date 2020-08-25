@@ -50,8 +50,6 @@ async def create_group(
     store=None, path=None, read_only=False, chunk_store=None, synchronizer=None
 ):
     # can be overridden in sub-classes
-    if store is None:
-        store, chunk_store = await create_store()
     init_group(store, path=path, chunk_store=chunk_store)
     g = Group(
         store,
