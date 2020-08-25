@@ -137,7 +137,7 @@ class BaseV3Store:
                 current - expected, expected - curent, v
             )
 
-        assert isinstance(value, bytes):
+        assert isinstance(value, bytes)
         assert self._valid_key(key)
         await self._set(key, value)
 
