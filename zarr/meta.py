@@ -12,6 +12,27 @@ import zarr.util
 ZARR_FORMAT = 2
 ZARR_FORMAT_v3 = "3"
 
+_v3_core_type = {
+    "bool",
+    "i1",
+    "<i2",
+    "<i4",
+    "<i8",
+    ">i2",
+    ">i4",
+    ">i8",
+    "u1",
+    "<u2",
+    "<u4",
+    "<u8",
+    "<f2",
+    "<f4",
+    "<f8",
+    ">f2",
+    ">f4",
+    ">f8",
+}
+
 
 def parse_metadata(s):
 
@@ -34,7 +55,7 @@ def decode_array_metadata_v3(s):
 
     # check metadata format
     # extract array metadata fields
-    dtype = decode_dtype(meta["data_type"])
+    dtype = decode_dtype_v3(meta["data_type"])
     fill_value = decode_fill_value(meta["fill_value"], dtype)
     meta = dict(
         shape=tuple(meta["shape"]),
@@ -45,6 +66,7 @@ def decode_array_metadata_v3(s):
         chunk_memory_layout=meta["chunk_memory_layout"],
     )
     return meta
+
 
 def decode_array_metadata(s):
     meta = parse_metadata(s)
@@ -92,6 +114,14 @@ def encode_array_metadata(meta):
     return json_dumps(meta)
 
 
+def encode_dtype_v3(d: np.dtype) -> str:
+    s = encode_dtype(d)
+    if s == "|b1":
+        return "bool"
+    assert s in _v3_core_type
+    return s
+
+
 def encode_dtype(d):
     if d.fields is None:
         return d.str
@@ -112,8 +142,14 @@ def decode_dtype(d):
     return np.dtype(d)
 
 
+def decode_dtype_v3(d):
+    assert d in _v3_core_type
+    return np.dtype(d)
+
+
 def decode_group_metadata_v3(s):
     return json.loads(s)
+
 
 def decode_group_metadata(s):
     meta = parse_metadata(s)
