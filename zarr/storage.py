@@ -443,7 +443,7 @@ def _init_array_metadata(store, shape, chunks=None, dtype=None, compressor='defa
                 order=order, filters=filters_config)
     key = _path_to_prefix(path) + array_meta_key
 
-    if getattr(store, "_store_version", 3) == 3:
+    if getattr(store, "_store_version", 2) == 3:
         store[key] = encode_array_metadata_v3(meta)
     else:
         store[key] = encode_array_metadata(meta)
