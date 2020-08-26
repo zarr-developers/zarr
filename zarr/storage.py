@@ -41,7 +41,11 @@ from numcodecs.registry import codec_registry
 from zarr.errors import (MetadataError, err_bad_compressor, err_contains_array,
                          err_contains_group, err_fspath_exists_notdir,
                          err_read_only)
-from zarr.meta import encode_array_metadata, encode_group_metadata
+from zarr.meta import (
+    encode_array_metadata,
+    encode_group_metadata,
+    encode_array_metadata_v3,
+)
 from zarr.util import (buffer_size, json_loads, nolock, normalize_chunks,
                        normalize_dtype, normalize_fill_value, normalize_order,
                        normalize_shape, normalize_storage_path)
@@ -438,7 +442,11 @@ def _init_array_metadata(store, shape, chunks=None, dtype=None, compressor='defa
                 compressor=compressor_config, fill_value=fill_value,
                 order=order, filters=filters_config)
     key = _path_to_prefix(path) + array_meta_key
-    store[key] = encode_array_metadata(meta)
+
+    if getattr(store, "_store_version", 3) == 3:
+        store[key] = encode_array_metadata_v3(meta)
+    else:
+        store[key] = encode_array_metadata(meta)
 
 
 # backwards compatibility

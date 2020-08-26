@@ -97,6 +97,24 @@ def decode_array_metadata(s):
 
 
 def encode_array_metadata(meta):
+    dtype = meta["dtype"]
+    sdshape = ()
+    if dtype.subdtype is not None:
+        dtype, sdshape = dtype.subdtype
+    meta = dict(
+        zarr_format=ZARR_FORMAT,
+        shape=meta["shape"] + sdshape,
+        chunks=meta["chunks"],
+        dtype=encode_dtype(dtype),
+        compressor=meta["compressor"],
+        fill_value=encode_fill_value(meta["fill_value"], dtype),
+        order=meta["order"],
+        filters=meta["filters"],
+    )
+    return json_dumps(meta)
+
+
+def encode_array_metadata_v3(meta):
     dtype = meta['dtype']
     sdshape = ()
     if dtype.subdtype is not None:
@@ -105,11 +123,10 @@ def encode_array_metadata(meta):
         zarr_format=ZARR_FORMAT,
         shape=meta['shape'] + sdshape,
         chunks=meta['chunks'],
-        dtype=encode_dtype(dtype),
+        dtype=encode_dtype_v3(dtype),
         compressor=meta['compressor'],
         fill_value=encode_fill_value(meta['fill_value'], dtype),
         order=meta['order'],
-        filters=meta['filters'],
     )
     return json_dumps(meta)
 
