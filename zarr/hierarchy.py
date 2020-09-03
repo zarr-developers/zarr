@@ -657,7 +657,7 @@ class Group(MutableMapping):
         with lock:
             return f(*args, **kwargs)
 
-    def create_group(self, name, overwrite=False):
+    def create_group(self, name, overwrite=False, require_parent=True, check_exists=True):
         """Create a sub-group.
 
         Parameters
@@ -666,6 +666,10 @@ class Group(MutableMapping):
             Group name.
         overwrite : bool, optional
             If True, overwrite any existing array with the given name.
+        require_parent : bool, optional
+            If False, no check is done to ensure that the parent group exists.
+        check_exists : bool, optional
+            If False, no check is done to see if the array or group already exists.
 
         Returns
         -------
@@ -681,14 +685,15 @@ class Group(MutableMapping):
 
         """
 
-        return self._write_op(self._create_group_nosync, name, overwrite=overwrite)
+        return self._write_op(self._create_group_nosync, name, overwrite=overwrite,
+                              require_parent=require_parent, check_exists=check_exists)
 
-    def _create_group_nosync(self, name, overwrite=False):
+    def _create_group_nosync(self, name, overwrite=False, require_parent=True, check_exists=True):
         path = self._item_path(name)
 
         # create terminal group
         init_group(self._store, path=path, chunk_store=self._chunk_store,
-                   overwrite=overwrite)
+                   overwrite=overwrite, require_parent=require_parent, check_exists=check_exists)
 
         return Group(self._store, path=path, read_only=self._read_only,
                      chunk_store=self._chunk_store, cache_attrs=self.attrs.cache,
@@ -780,6 +785,10 @@ class Group(MutableMapping):
             lifetime of the object. If False, array metadata will be reloaded
             prior to all data access and modification operations (may incur
             overhead depending on storage and data access pattern).
+        require_parent : bool, optional
+            If False, no check is done to ensure that the parent group exists.
+        check_exists : bool, optional
+            If False, no check is done to see if the array or group already exists.
 
         Returns
         -------
@@ -1037,7 +1046,8 @@ def _normalize_store_arg(store, clobber=False):
 
 
 def group(store=None, overwrite=False, chunk_store=None,
-          cache_attrs=True, synchronizer=None, path=None):
+          cache_attrs=True, synchronizer=None, path=None,
+          require_parent=True, check_exists=True):
     """Create a group.
 
     Parameters
@@ -1058,6 +1068,10 @@ def group(store=None, overwrite=False, chunk_store=None,
         Array synchronizer.
     path : string, optional
         Group path within store.
+    require_parent : bool, optional
+        If False, no check is done to ensure that the parent group exists.
+    check_exists : bool, optional
+        If False, no check is done to see if the array or group already exists.
 
     Returns
     -------
@@ -1088,14 +1102,14 @@ def group(store=None, overwrite=False, chunk_store=None,
     # require group
     if overwrite or not contains_group(store):
         init_group(store, overwrite=overwrite, chunk_store=chunk_store,
-                   path=path)
+                   path=path, require_parent=require_parent, check_exists=check_exists)
 
     return Group(store, read_only=False, chunk_store=chunk_store,
                  cache_attrs=cache_attrs, synchronizer=synchronizer, path=path)
 
 
 def open_group(store=None, mode='a', cache_attrs=True, synchronizer=None, path=None,
-               chunk_store=None):
+               chunk_store=None, require_parent=True, check_exists=True):
     """Open a group using file-mode-like semantics.
 
     Parameters
@@ -1117,6 +1131,10 @@ def open_group(store=None, mode='a', cache_attrs=True, synchronizer=None, path=N
         Group path within store.
     chunk_store : MutableMapping or string, optional
         Store or path to directory in file system or name of zip file.
+    require_parent : bool, optional
+        If False, no check is done to ensure that the parent group exists.
+    check_exists : bool, optional
+        If False, no check is done to see if the array or group already exists.
 
     Returns
     -------
@@ -1153,7 +1171,8 @@ def open_group(store=None, mode='a', cache_attrs=True, synchronizer=None, path=N
             err_group_not_found(path)
 
     elif mode == 'w':
-        init_group(store, overwrite=True, path=path, chunk_store=chunk_store)
+        init_group(store, overwrite=True, path=path, chunk_store=chunk_store,
+                   require_parent=require_parent, check_exists=check_exists)
 
     elif mode == 'a':
         if contains_array(store, path=path):

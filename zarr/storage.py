@@ -216,7 +216,8 @@ def _require_parent_group(path, store, chunk_store, overwrite):
 
 def init_array(store, shape, chunks=True, dtype=None, compressor='default',
                fill_value=None, order='C', overwrite=False, path=None,
-               chunk_store=None, filters=None, object_codec=None):
+               chunk_store=None, filters=None, object_codec=None,
+               require_parent=True, check_exists=True):
     """Initialize an array store with the given configuration. Note that this is a low-level
     function and there should be no need to call this directly from user code.
 
@@ -248,6 +249,10 @@ def init_array(store, shape, chunks=True, dtype=None, compressor='default',
         Sequence of filters to use to encode chunk data prior to compression.
     object_codec : Codec, optional
         A codec to encode object arrays, only needed if dtype=object.
+    require_parent : bool, optional
+        If False, no check is done to ensure that the parent group exists.
+    check_exists : bool, optional
+        If False, no check is done to see if the array or group already exists.
 
     Examples
     --------
@@ -324,18 +329,19 @@ def init_array(store, shape, chunks=True, dtype=None, compressor='default',
     path = normalize_storage_path(path)
 
     # ensure parent group initialized
-    _require_parent_group(path, store=store, chunk_store=chunk_store, overwrite=overwrite)
+    if require_parent:
+        _require_parent_group(path, store=store, chunk_store=chunk_store, overwrite=overwrite)
 
     _init_array_metadata(store, shape=shape, chunks=chunks, dtype=dtype,
                          compressor=compressor, fill_value=fill_value,
                          order=order, overwrite=overwrite, path=path,
                          chunk_store=chunk_store, filters=filters,
-                         object_codec=object_codec)
+                         object_codec=object_codec, check_exists=check_exists)
 
 
 def _init_array_metadata(store, shape, chunks=None, dtype=None, compressor='default',
                          fill_value=None, order='C', overwrite=False, path=None,
-                         chunk_store=None, filters=None, object_codec=None):
+                         chunk_store=None, filters=None, object_codec=None, check_exists=True):
 
     # guard conditions
     if overwrite:
@@ -343,10 +349,11 @@ def _init_array_metadata(store, shape, chunks=None, dtype=None, compressor='defa
         rmdir(store, path)
         if chunk_store is not None:
             rmdir(chunk_store, path)
-    elif contains_array(store, path):
-        err_contains_array(path)
-    elif contains_group(store, path):
-        err_contains_group(path)
+    elif check_exists:
+        if contains_array(store, path):
+            err_contains_array(path)
+        elif contains_group(store, path):
+            err_contains_group(path)
 
     # normalize metadata
     dtype, object_codec = normalize_dtype(dtype, object_codec)
@@ -412,7 +419,8 @@ def _init_array_metadata(store, shape, chunks=None, dtype=None, compressor='defa
 init_store = init_array
 
 
-def init_group(store, overwrite=False, path=None, chunk_store=None):
+def init_group(store, overwrite=False, path=None, chunk_store=None,
+               require_parent=True, check_exists=True):
     """Initialize a group store. Note that this is a low-level function and there should be no
     need to call this directly from user code.
 
@@ -427,6 +435,10 @@ def init_group(store, overwrite=False, path=None, chunk_store=None):
     chunk_store : MutableMapping, optional
         Separate storage for chunks. If not provided, `store` will be used
         for storage of both chunks and metadata.
+    require_parent : bool, optional
+        If False, no check is done to ensure that the parent group exists.
+    check_exists : bool, optional
+        If False, no check is done to see if the array or group already exists.
 
     """
 
@@ -434,15 +446,16 @@ def init_group(store, overwrite=False, path=None, chunk_store=None):
     path = normalize_storage_path(path)
 
     # ensure parent group initialized
-    _require_parent_group(path, store=store, chunk_store=chunk_store,
-                          overwrite=overwrite)
+    if require_parent:
+        _require_parent_group(path, store=store, chunk_store=chunk_store,
+                              overwrite=overwrite)
 
     # initialise metadata
     _init_group_metadata(store=store, overwrite=overwrite, path=path,
-                         chunk_store=chunk_store)
+                         chunk_store=chunk_store, check_exists=check_exists)
 
 
-def _init_group_metadata(store, overwrite=False, path=None, chunk_store=None):
+def _init_group_metadata(store, overwrite=False, path=None, chunk_store=None, check_exists=True):
 
     # guard conditions
     if overwrite:
@@ -450,10 +463,11 @@ def _init_group_metadata(store, overwrite=False, path=None, chunk_store=None):
         rmdir(store, path)
         if chunk_store is not None:
             rmdir(chunk_store, path)
-    elif contains_array(store, path):
-        err_contains_array(path)
-    elif contains_group(store, path):
-        err_contains_group(path)
+    elif check_exists:
+        if contains_array(store, path):
+            err_contains_array(path)
+        elif contains_group(store, path):
+            err_contains_group(path)
 
     # initialize metadata
     # N.B., currently no metadata properties are needed, however there may
