@@ -1,6 +1,12 @@
 Release notes
 =============
 
+
+Next Release
+------------
+
+* Allow to assign array ``fill_values`` and update metadata accordingly. :issue:`662`
+
 2.6.0
 -----
 
