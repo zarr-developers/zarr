@@ -95,9 +95,10 @@ class Group(MutableMapping):
     """
 
     def __init__(self, store, path=None, read_only=False, chunk_store=None,
-                 cache_attrs=True, synchronizer=None):
+                 cache_attrs=True, synchronizer=None, chunk_cache=None):
         self._store = store
         self._chunk_store = chunk_store
+        self._chunk_cache = chunk_cache
         self._path = normalize_storage_path(path)
         if self._path:
             self._key_prefix = self._path + '/'
@@ -339,12 +340,12 @@ class Group(MutableMapping):
         path = self._item_path(item)
         if contains_array(self._store, path):
             return Array(self._store, read_only=self._read_only, path=path,
-                         chunk_store=self._chunk_store,
+                         chunk_store=self._chunk_store, chunk_cache=self._chunk_cache,
                          synchronizer=self._synchronizer, cache_attrs=self.attrs.cache)
         elif contains_group(self._store, path):
             return Group(self._store, read_only=self._read_only, path=path,
                          chunk_store=self._chunk_store, cache_attrs=self.attrs.cache,
-                         synchronizer=self._synchronizer)
+                         synchronizer=self._synchronizer, chunk_cache=self._chunk_cache)
         else:
             raise KeyError(item)
 
@@ -421,6 +422,7 @@ class Group(MutableMapping):
             if contains_group(self._store, path):
                 yield key, Group(self._store, path=path, read_only=self._read_only,
                                  chunk_store=self._chunk_store,
+                                 chunk_cache=self._chunk_cache,
                                  cache_attrs=self.attrs.cache,
                                  synchronizer=self._synchronizer)
 
@@ -695,7 +697,7 @@ class Group(MutableMapping):
 
         return Group(self._store, path=path, read_only=self._read_only,
                      chunk_store=self._chunk_store, cache_attrs=self.attrs.cache,
-                     synchronizer=self._synchronizer)
+                     synchronizer=self._synchronizer, chunk_cache=self._chunk_cache)
 
     def create_groups(self, *names, **kwargs):
         """Convenience method to create multiple groups in a single call."""
@@ -739,7 +741,7 @@ class Group(MutableMapping):
 
         return Group(self._store, path=path, read_only=self._read_only,
                      chunk_store=self._chunk_store, cache_attrs=self.attrs.cache,
-                     synchronizer=self._synchronizer)
+                     synchronizer=self._synchronizer, chunk_cache=self._chunk_cache)
 
     def require_groups(self, *names):
         """Convenience method to require multiple groups in a single call."""
@@ -863,7 +865,8 @@ class Group(MutableMapping):
             cache_attrs = kwargs.get('cache_attrs', self.attrs.cache)
             a = Array(self._store, path=path, read_only=self._read_only,
                       chunk_store=self._chunk_store, synchronizer=synchronizer,
-                      cache_metadata=cache_metadata, cache_attrs=cache_attrs)
+                      cache_metadata=cache_metadata, cache_attrs=cache_attrs,
+                      chunk_cache=self._chunk_cache)
             shape = normalize_shape(shape)
             if shape != a.shape:
                 raise TypeError('shape do not match existing array; expected {}, got {}'
@@ -1043,7 +1046,8 @@ def _normalize_store_arg(store, *, clobber=False, storage_options=None, mode=Non
 
 
 def group(store=None, overwrite=False, chunk_store=None,
-          cache_attrs=True, synchronizer=None, path=None):
+          cache_attrs=True, synchronizer=None, path=None,
+          chunk_cache=None):
     """Create a group.
 
     Parameters
@@ -1097,11 +1101,12 @@ def group(store=None, overwrite=False, chunk_store=None,
                    path=path)
 
     return Group(store, read_only=False, chunk_store=chunk_store,
-                 cache_attrs=cache_attrs, synchronizer=synchronizer, path=path)
+                 cache_attrs=cache_attrs, synchronizer=synchronizer, path=path,
+                 chunk_cache=chunk_cache)
 
 
 def open_group(store=None, mode='a', cache_attrs=True, synchronizer=None, path=None,
-               chunk_store=None, storage_options=None):
+               chunk_store=None, storage_options=None, chunk_cache=None):
     """Open a group using file-mode-like semantics.
 
     Parameters
@@ -1186,4 +1191,5 @@ def open_group(store=None, mode='a', cache_attrs=True, synchronizer=None, path=N
     read_only = mode == 'r'
 
     return Group(store, read_only=read_only, cache_attrs=cache_attrs,
-                 synchronizer=synchronizer, path=path, chunk_store=chunk_store)
+                 synchronizer=synchronizer, path=path, chunk_store=chunk_store,
+                 chunk_cache=chunk_cache)

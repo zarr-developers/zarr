@@ -13,7 +13,7 @@ from zarr.n5 import N5Store
 from zarr.storage import (ABSStore, DBMStore, DictStore, DirectoryStore,
                           LMDBStore, LRUStoreCache, MemoryStore, MongoDBStore,
                           NestedDirectoryStore, RedisStore, SQLiteStore,
-                          TempStore, ZipStore)
+                          TempStore, ZipStore, LRUChunkCache)
 from zarr.sync import ProcessSynchronizer, ThreadSynchronizer
 from zarr.version import version as __version__
 

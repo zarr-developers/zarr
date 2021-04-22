@@ -76,6 +76,15 @@ class Array:
         read and decompressed when possible.
 
         .. versionadded:: 2.7
+    chunk_cache: MutableMapping, optional
+        Mapping to store decoded chunks for caching. Can be used in repeated
+        chunk access scenarios when decoding of data is computationally
+        expensive.
+        NOTE: When using the write cache feature with object arrays(i.e.
+        when dtype of array is 'object' and when writing to the array with
+        chunk_cache provided) could result in a slight slowdown as some
+        dtypes, like VLenArray, have to go through the encode-decode phase
+        before having the correct dtype.
 
     Attributes
     ----------
@@ -137,6 +146,7 @@ class Array:
         cache_metadata=True,
         cache_attrs=True,
         partial_decompress=False,
+        chunk_cache=None,
     ):
         # N.B., expect at this point store is fully initialized with all
         # configuration metadata fully specified and normalized
@@ -153,6 +163,7 @@ class Array:
         self._cache_metadata = cache_metadata
         self._is_view = False
         self._partial_decompress = partial_decompress
+        self._chunk_cache = chunk_cache
 
         # initialize metadata
         self._load_metadata()
@@ -793,19 +804,33 @@ class Array:
         if selection not in ((), (Ellipsis,)):
             err_too_many_indices(selection, ())
 
-        try:
-            # obtain encoded data for chunk
-            ckey = self._chunk_key((0,))
-            cdata = self.chunk_store[ckey]
+        # obtain key for chunk
+        ckey = self._chunk_key((0,))
 
-        except KeyError:
-            # chunk not initialized
-            chunk = np.zeros((), dtype=self._dtype)
-            if self._fill_value is not None:
-                chunk.fill(self._fill_value)
+        # setup variable to hold decoded chunk
+        chunk = None
 
-        else:
-            chunk = self._decode_chunk(cdata)
+        # check for cached chunk
+        if self._chunk_cache is not None:
+            chunk = self._chunk_cache.get(ckey)
+
+        if chunk is None:
+            try:
+                # obtain encoded data for chunk
+                cdata = self.chunk_store[ckey]
+
+            except KeyError:
+                # chunk not initialized
+                chunk = np.zeros((), dtype=self._dtype)
+                if self._fill_value is not None:
+                    chunk.fill(self._fill_value)
+
+            else:
+                chunk = self._decode_chunk(cdata)
+
+            # cache decoded chunk
+            if self._chunk_cache is not None:
+                self._chunk_cache[ckey] = chunk
 
         # handle fields
         if fields:
@@ -1588,6 +1613,12 @@ class Array:
         cdata = self._encode_chunk(chunk)
         self.chunk_store[ckey] = cdata
 
+        if self._chunk_cache is not None:
+            # ensure cached chunk has been round tripped through encode-decode if dtype=object
+            if self.dtype == object:
+                chunk = self._decode_chunk(cdata)
+            self._chunk_cache[ckey] = chunk
+
     def _set_basic_selection_nd(self, selection, value, fields=None):
         # implementation of __setitem__ for array with at least one dimension
 
@@ -1647,6 +1678,7 @@ class Array:
 
                 # put data
                 self._chunk_setitem(chunk_coords, chunk_selection, chunk_value, fields=fields)
+
         else:
             lchunk_coords, lchunk_selection, lout_selection = zip(*indexer)
             chunk_values = []
@@ -1669,6 +1701,18 @@ class Array:
             self._chunk_setitems(lchunk_coords, lchunk_selection, chunk_values,
                                  fields=fields)
 
+    def _select_and_set_out(self, fields, chunk, chunk_selection, drop_axes,
+                            out, out_selection):
+        # select data from chunk
+        if fields:
+            chunk = chunk[fields]
+        tmp = chunk[chunk_selection]
+        if drop_axes:
+            tmp = np.squeeze(tmp, axis=drop_axes)
+
+        # store selected data in output
+        out[out_selection] = tmp
+
     def _process_chunk(
         self,
         out,
@@ -1678,6 +1722,7 @@ class Array:
         out_is_ndarray,
         fields,
         out_selection,
+        ckey,
         partial_read_decode=False,
     ):
         """Take binary data from storage and fill output array"""
@@ -1741,16 +1786,12 @@ class Array:
         except ArrayIndexError:
             cdata = cdata.read_full()
         chunk = self._decode_chunk(cdata)
+        if self._chunk_cache is not None:
+            # cache the decoded chunk
+            self._chunk_cache[ckey] = chunk
 
-        # select data from chunk
-        if fields:
-            chunk = chunk[fields]
-        tmp = chunk[chunk_selection]
-        if drop_axes:
-            tmp = np.squeeze(tmp, axis=drop_axes)
-
-        # store selected data in output
-        out[out_selection] = tmp
+        self._select_and_set_out(fields, chunk, chunk_selection, drop_axes,
+                                 out, out_selection)
 
     def _chunk_getitem(self, chunk_coords, chunk_selection, out, out_selection,
                        drop_axes=None, fields=None):
@@ -1783,22 +1824,38 @@ class Array:
         # obtain key for chunk
         ckey = self._chunk_key(chunk_coords)
 
-        try:
-            # obtain compressed data for chunk
-            cdata = self.chunk_store[ckey]
+        # setup variable to hold decoded chunk
+        chunk = None
 
-        except KeyError:
-            # chunk not initialized
-            if self._fill_value is not None:
-                if fields:
-                    fill_value = self._fill_value[fields]
-                else:
-                    fill_value = self._fill_value
-                out[out_selection] = fill_value
+        # check for cached chunk
+        if self._chunk_cache is not None:
+            try:
+                chunk = self._chunk_cache[ckey]
+                self._select_and_set_out(fields, chunk, chunk_selection,
+                                         drop_axes, out, out_selection)
+            except KeyError:
+                pass
 
-        else:
-            self._process_chunk(out, cdata, chunk_selection, drop_axes,
-                                out_is_ndarray, fields, out_selection)
+        if chunk is None:
+
+            try:
+                # obtain compressed data for chunk
+                cdata = self.chunk_store[ckey]
+
+            except KeyError:
+                # chunk not initialized
+                if self._fill_value is not None:
+                    if fields:
+                        fill_value = self._fill_value[fields]
+                    else:
+                        fill_value = self._fill_value
+                    out[out_selection] = fill_value
+                return
+
+            else:
+                self._process_chunk(out, cdata, chunk_selection, drop_axes,
+                                    out_is_ndarray, fields, out_selection,
+                                    ckey)
 
     def _chunk_getitems(self, lchunk_coords, lchunk_selection, out, lout_selection,
                         drop_axes=None, fields=None):
@@ -1842,6 +1899,7 @@ class Array:
                     out_is_ndarray,
                     fields,
                     out_select,
+                    ckey,
                     partial_read_decode=partial_read_decode,
                 )
             else:
@@ -1947,7 +2005,16 @@ class Array:
                 chunk[chunk_selection] = value
 
         # encode chunk
-        return self._encode_chunk(chunk)
+        cdata = self._encode_chunk(chunk)
+
+        # cache the chunk
+        if self._chunk_cache is not None:
+            # ensure cached chunk has been round tripped through encode-decode if dtype=object
+            if self.dtype == object:
+                chunk = self._decode_chunk(cdata)
+            self._chunk_cache[ckey] = np.copy(chunk)
+
+        return cdata
 
     def _chunk_key(self, chunk_coords):
         if hasattr(self._store, 'key_separator'):

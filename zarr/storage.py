@@ -1948,7 +1948,75 @@ class LMDBStore(MutableMapping):
         return self.db.stat()['entries']
 
 
-class LRUStoreCache(MutableMapping):
+class LRUMappingCache(MutableMapping):
+    """Abstract base class for Mapping Cache
+    """
+
+    def __init__(self, max_size):
+        self._max_size = max_size
+        self._current_size = 0
+        self._values_cache = OrderedDict()
+        self._mutex = Lock()
+        self.hits = self.misses = 0
+
+    def __len__(self):
+        return len(self._keys())
+
+    def __iter__(self):
+        return self.keys()
+
+    def keys(self):
+        with self._mutex:
+            return iter(self._keys())
+
+    def _keys(self):
+        raise NotImplementedError  # pragma: no cover
+
+    def _pop_value(self):
+        # remove the first value from the cache, as this will be the least recently
+        # used value
+        _, v = self._values_cache.popitem(last=False)
+        return v
+
+    def _accommodate_value(self, value_size):
+        if self._max_size is None:
+            return
+        # ensure there is enough space in the cache for a new value
+        while self._current_size + value_size > self._max_size:
+            v = self._pop_value()
+            self._current_size -= buffer_size(v)
+
+    def _cache_value(self, key, value):
+        # cache a value
+        value_size = buffer_size(value)
+        # check size of the value against max size, as if the value itself exceeds max
+        # size then we are never going to cache it
+        if self._max_size is None or value_size <= self._max_size:
+            self._accommodate_value(value_size)
+            self._values_cache[key] = value
+            self._current_size += value_size
+
+    def invalidate_values(self):
+        """Clear the values cache."""
+        with self._mutex:
+            self._values_cache.clear()
+
+    def _invalidate_value(self, key):
+        if key in self._values_cache:
+            value = self._values_cache.pop(key)
+            self._current_size -= buffer_size(value)
+
+    def __getitem__(self, key):
+        raise NotImplementedError  # pragma: no cover
+
+    def __setitem__(self, key, value):
+        raise NotImplementedError  # pragma: no cover
+
+    def __delitem__(self, key):
+        raise NotImplementedError  # pragma: no cover
+
+
+class LRUStoreCache(LRUMappingCache):
     """Storage class that implements a least-recently-used (LRU) cache layer over
     some other store. Intended primarily for use with stores that can be slow to
     access, e.g., remote stores that require network communication to store and
@@ -1986,15 +2054,11 @@ class LRUStoreCache(MutableMapping):
     """
 
     def __init__(self, store, max_size):
+        super(LRUStoreCache, self).__init__(max_size)
         self._store = store
-        self._max_size = max_size
-        self._current_size = 0
         self._keys_cache = None
         self._contains_cache = None
         self._listdir_cache = dict()
-        self._values_cache = OrderedDict()
-        self._mutex = Lock()
-        self.hits = self.misses = 0
 
     def __getstate__(self):
         return (self._store, self._max_size, self._current_size, self._keys_cache,
@@ -2007,12 +2071,6 @@ class LRUStoreCache(MutableMapping):
          self.misses) = state
         self._mutex = Lock()
 
-    def __len__(self):
-        return len(self._keys())
-
-    def __iter__(self):
-        return self.keys()
-
     def __contains__(self, key):
         with self._mutex:
             if self._contains_cache is None:
@@ -2022,10 +2080,6 @@ class LRUStoreCache(MutableMapping):
     def clear(self):
         self._store.clear()
         self.invalidate()
-
-    def keys(self):
-        with self._mutex:
-            return iter(self._keys())
 
     def _keys(self):
         if self._keys_cache is None:
@@ -2044,40 +2098,11 @@ class LRUStoreCache(MutableMapping):
     def getsize(self, path=None):
         return getsize(self._store, path=path)
 
-    def _pop_value(self):
-        # remove the first value from the cache, as this will be the least recently
-        # used value
-        _, v = self._values_cache.popitem(last=False)
-        return v
-
-    def _accommodate_value(self, value_size):
-        if self._max_size is None:
-            return
-        # ensure there is enough space in the cache for a new value
-        while self._current_size + value_size > self._max_size:
-            v = self._pop_value()
-            self._current_size -= buffer_size(v)
-
-    def _cache_value(self, key, value):
-        # cache a value
-        value_size = buffer_size(value)
-        # check size of the value against max size, as if the value itself exceeds max
-        # size then we are never going to cache it
-        if self._max_size is None or value_size <= self._max_size:
-            self._accommodate_value(value_size)
-            self._values_cache[key] = value
-            self._current_size += value_size
-
     def invalidate(self):
         """Completely clear the cache."""
         with self._mutex:
             self._values_cache.clear()
             self._invalidate_keys()
-
-    def invalidate_values(self):
-        """Clear the values cache."""
-        with self._mutex:
-            self._values_cache.clear()
 
     def invalidate_keys(self):
         """Clear the keys cache."""
@@ -2088,11 +2113,6 @@ class LRUStoreCache(MutableMapping):
         self._keys_cache = None
         self._contains_cache = None
         self._listdir_cache.clear()
-
-    def _invalidate_value(self, key):
-        if key in self._values_cache:
-            value = self._values_cache.pop(key)
-            self._current_size -= buffer_size(value)
 
     def __getitem__(self, key):
         try:
@@ -2712,3 +2732,105 @@ class ConsolidatedMetadataStore(MutableMapping):
 
     def listdir(self, path):
         return listdir(self.meta_store, path)
+
+
+class LRUChunkCache(LRUMappingCache):
+    """Class that implements a least-recently-used (LRU) cache for array chunks.
+    Intended primarily for use with stores that can be slow to access, e.g., remote stores that
+    require network communication to store and retrieve data, and/or arrays where decompression
+    of data is computationally expensive.
+
+    Parameters
+    ----------
+    max_size : int
+        The maximum size that the cache may grow to, in number of bytes. Provide `None`
+        if you would like the cache to have unlimited size.
+
+    Examples
+    --------
+    The example below uses a dict store to store the encoded array and uses LRUChunkCache to
+    store decoded chunks::
+
+        >>> import zarr
+        >>> from numcodecs import LZMA
+        >>> import numpy as np
+        >>> store = zarr.MemoryStore()
+        >>> z = zarr.array(np.random.randn(1000000).reshape(1000,1000), chunks=(100,100),
+        ...                store=store, compressor=LZMA())
+        >>> from timeit import timeit
+        >>> # data access without cache
+        ... timeit('z[:]', number=1, globals=globals())  # doctest: +SKIP
+        0.6703157789888792
+        >>> z_with_cache = zarr.Array(store=store, chunk_cache=zarr.LRUChunkCache(max_size=None))
+        >>> # first data access about the same as without cache
+        ... timeit('z_with_cache[:]', number=1, globals=globals())  # doctest: +SKIP
+        0.681269913999131
+        >>> # second time accesses the decoded chunks in the cache
+        ... timeit('z_with_cache[:]', number=1, globals=globals())  # doctest: +SKIP
+        0.007617925992235541
+
+    """
+
+    def __init__(self, max_size):
+        super(LRUChunkCache, self).__init__(max_size)
+
+    def __getstate__(self):
+        return (self._max_size, self._current_size,
+                self._values_cache, self.hits,
+                self.misses)
+
+    def __setstate__(self, state):
+        (self._max_size, self._current_size,
+         self._values_cache, self.hits,
+         self.misses) = state
+        self._mutex = Lock()
+
+    def __contains__(self, key):
+        with self._mutex:
+            return key in self._keys()
+
+    def clear(self):
+        self.invalidate()
+
+    def _keys(self):
+        return self._values_cache.keys()
+
+    def values(self):
+        return self._values_cache.values()
+
+    def items(self):
+        return self._values_cache.items()
+
+    def invalidate(self):
+        """Completely clear the cache."""
+        with self._mutex:
+            self._values_cache.clear()
+
+    def __getitem__(self, key):
+        try:
+            # try to obtain the value from the cache
+            with self._mutex:
+                value = self._values_cache[key]
+                # cache hit if no KeyError is raised
+                self.hits += 1
+                # treat the end as most recently used
+                self._values_cache.move_to_end(key)
+
+        except KeyError:
+            # cache miss
+            with self._mutex:
+                self.misses += 1
+            raise KeyError
+
+        return value
+
+    def __setitem__(self, key, value):
+        with self._mutex:
+            self._invalidate_value(key)
+            self._cache_value(key, value)
+
+    def __delitem__(self, key):
+        if key not in self._values_cache:
+            raise KeyError
+        with self._mutex:
+            self._invalidate_value(key)
