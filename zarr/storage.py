@@ -1123,6 +1123,13 @@ class FSStore(MutableMapping):
         else:
             del self.map[key]
 
+    def delitems(self, keys):
+        if self.mode == 'r':
+            raise ReadOnlyError
+        # only remove the keys that exist in the store
+        nkeys = [self._normalize_key(key) for key in keys if key in self]
+        self.map.delitems(nkeys)
+
     def __contains__(self, key):
         key = self._normalize_key(key)
         return key in self.map
@@ -1162,7 +1169,7 @@ class FSStore(MutableMapping):
                         if _prog_number.match(entry) and self.fs.isdir(entry_path):
                             for file_name in self.fs.find(entry_path):
                                 file_path = os.path.join(dir_path, file_name)
-                                rel_path = file_path.split(root_path)[1]
+                                rel_path = file_path.split(root_path)[1].strip(os.path.sep)
                                 new_children.append(rel_path.replace(os.path.sep, '.'))
                         else:
                             new_children.append(entry)

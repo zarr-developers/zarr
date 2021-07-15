@@ -33,6 +33,7 @@ from zarr.storage import array_meta_key, attrs_key, getsize, listdir
 from zarr.util import (
     InfoReporter,
     check_array_shape,
+    flatten,
     human_readable_size,
     is_total_slice,
     nolock,
@@ -74,6 +75,12 @@ class Array:
         If True and while the chunk_store is a FSStore and the compresion used
         is Blosc, when getting data from the array chunks will be partially
         read and decompressed when possible.
+    write_empty_chunks : bool, optional
+        Determines chunk writing behavior for chunks filled with `fill_value` ("empty" chunks).
+        If True (default), all chunks will be written regardless of their contents.
+        If False, empty chunks will not be written, and the `store` entry for
+        the chunk key of an empty chunk will be deleted. Note that setting this option to False
+        will incur additional overhead per chunk write.
 
         .. versionadded:: 2.7
 
@@ -138,6 +145,7 @@ class Array:
         cache_metadata=True,
         cache_attrs=True,
         partial_decompress=False,
+        write_empty_chunks=False,
     ):
         # N.B., expect at this point store is fully initialized with all
         # configuration metadata fully specified and normalized
@@ -154,6 +162,7 @@ class Array:
         self._cache_metadata = cache_metadata
         self._is_view = False
         self._partial_decompress = partial_decompress
+        self._write_empty_chunks = write_empty_chunks
 
         # initialize metadata
         self._load_metadata()
@@ -1586,6 +1595,17 @@ class Array:
         else:
             chunk[selection] = value
 
+        # clear chunk if it only contains the fill value
+        if self._chunk_is_empty(chunk):
+            try:
+                del self.chunk_store[ckey]
+                return
+            except KeyError:
+                return
+            except Exception:
+                # deleting failed, fallback to overwriting
+                pass
+
         # encode and store
         cdata = self._encode_chunk(chunk)
         self.chunk_store[ckey] = cdata
@@ -1856,11 +1876,51 @@ class Array:
                     out[out_select] = fill_value
 
     def _chunk_setitems(self, lchunk_coords, lchunk_selection, values, fields=None):
-        ckeys = [self._chunk_key(co) for co in lchunk_coords]
-        cdatas = [self._process_for_setitem(key, sel, val, fields=fields)
-                  for key, sel, val in zip(ckeys, lchunk_selection, values)]
-        values = {k: v for k, v in zip(ckeys, cdatas)}
-        self.chunk_store.setitems(values)
+        ckeys = map(self._chunk_key, lchunk_coords)
+        cdatas = {key: self._process_for_setitem(key, sel, val, fields=fields)
+                  for key, sel, val in zip(ckeys, lchunk_selection, values)}
+        to_store = {}
+        if not self._write_empty_chunks:
+            empty_chunks = {k: v for k, v in cdatas.items() if self._chunk_is_empty(v)}
+            if hasattr(self.store, 'delitems'):
+                self.store.delitems(tuple(empty_chunks.keys()))
+            else:
+                for ckey in empty_chunks.keys():
+                    self._chunk_delitem(ckey)
+            nonempty_keys = cdatas.keys() - empty_chunks.keys()
+            to_store = {k: self._encode_chunk(cdatas[k]) for k in nonempty_keys}
+        else:
+            to_store = {k: self._encode_chunk(v) for k, v in cdatas.items()}
+        self.chunk_store.setitems(to_store)
+
+    def _chunk_is_empty(self, chunk):
+        if self.dtype == 'object':
+            # we have to flatten the result of np.equal to handle outputs like
+            # [np.array([True,True]), True, True]
+            is_empty = all(flatten(np.equal(chunk, self.fill_value, dtype='object')))
+        else:
+            is_empty = np.all(chunk == self._fill_value)
+        return is_empty
+
+    def _chunk_delitems(self, ckeys):
+        if isinstance(ckeys, str):
+            ckeys = [ckeys]
+
+        if hasattr(self.store, "delitems"):
+            self.store.delitems(ckeys)
+        else:
+            tuple(map(self._chunk_delitem, ckeys))
+        return None
+
+    def _chunk_delitem(self, ckey):
+        """
+        Attempt to delete the value associated with ckey.
+        """
+        try:
+            del self.chunk_store[ckey]
+            return
+        except KeyError:
+            return
 
     def _chunk_setitem(self, chunk_coords, chunk_selection, value, fields=None):
         """Replace part or whole of a chunk.
@@ -1891,8 +1951,12 @@ class Array:
     def _chunk_setitem_nosync(self, chunk_coords, chunk_selection, value, fields=None):
         ckey = self._chunk_key(chunk_coords)
         cdata = self._process_for_setitem(ckey, chunk_selection, value, fields=fields)
-        # store
-        self.chunk_store[ckey] = cdata
+
+        # attempt to delete chunk if it only contains the fill value
+        if (not self._write_empty_chunks) and self._chunk_is_empty(cdata):
+            self._chunk_delitem(ckey)
+        else:
+            self.chunk_store[ckey] = self._encode_chunk(cdata)
 
     def _process_for_setitem(self, ckey, chunk_selection, value, fields=None):
         if is_total_slice(chunk_selection, self._chunks) and not fields:
@@ -1948,8 +2012,7 @@ class Array:
             else:
                 chunk[chunk_selection] = value
 
-        # encode chunk
-        return self._encode_chunk(chunk)
+        return chunk
 
     def _chunk_key(self, chunk_coords):
         return self._key_prefix + '.'.join(map(str, chunk_coords))
@@ -2169,7 +2232,8 @@ class Array:
 
     def __getstate__(self):
         return (self._store, self._path, self._read_only, self._chunk_store,
-                self._synchronizer, self._cache_metadata, self._attrs.cache)
+                self._synchronizer, self._cache_metadata, self._attrs.cache,
+                self._partial_decompress, self._write_empty_chunks)
 
     def __setstate__(self, state):
         self.__init__(*state)
